@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Habilitar modo clase para dark: en Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
+
+
 /* Definición del tema de Tailwind v4 */
 @theme {
   --color-brand-blue: var(--brand-blue);
@@ -9,33 +13,22 @@
   --color-brand-muted: var(--brand-muted);
 }
 
-/* Variables para Modo Claro */
+/* --- VARIABLES MODO CLARO --- */
 :root {
-  --brand-blue: #003E7E;
-  --brand-gold: #826229;
-  --brand-bg: #FFFFFF;
-  --brand-text: #0A1128;
-  --brand-muted: #5A6B82;
+  --brand-blue: #024384e1;   /* Azul marino de lujo */
+  --brand-gold: #826229;   /* Dorado/Bronce de acento */
+  --brand-bg: #F8F9FA;     /* Fondo crema */
+  --brand-text: #0A1128;   /* Texto oscuro */
+  --brand-muted: #5A6B82;  /* Texto gris azulado secundario */
 }
 
-/* Variables para Modo Oscuro (Por preferencia del sistema) */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --brand-blue: #1E6091; /* Un azul un poco más brillante para mejor contraste */
-    --brand-gold: #C69B56; /* Un dorado más claro y brillante para el fondo oscuro */
-    --brand-bg: #0B0F19;   /* Fondo azul oscuro/negro premium */
-    --brand-text: #F8FAFC; /* Blanco grisáceo */
-    --brand-muted: #94A3B8;/* Gris intermedio */
-  }
-}
-
-/* Variables para Modo Oscuro (Por clase .dark en el tag html o body, útil para un switch manual) */
+/* --- VARIABLES MODO OSCURO (Solo se activan con la clase .dark) --- */
 .dark {
-  --brand-blue: #1E6091;
-  --brand-gold: #C69B56;
-  --brand-bg: #0B0F19;
-  --brand-text: #F8FAFC;
-  --brand-muted: #94A3B8;
+  --brand-blue: #1E2530;   /* Azul más claro para contraste en negro */
+  --brand-gold: #C69B56;   /* Dorado más brillante para resaltar */
+  --brand-bg: #0B0F19;     /* Fondo negro azulado premium */
+  --brand-text: #F8FAFC;   /* Texto blanco grisáceo */
+  --brand-muted: #94A3B8;  /* Texto gris intermedio */
 }
 
 body {
