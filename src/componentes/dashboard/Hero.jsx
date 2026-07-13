@@ -8,7 +8,7 @@ function Hero() {
           alt="Mansión de lujo La Finca"
           className="w-full h-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-brand-blue/95 via-brand-blue/70 to-transparent dark:from-black/95 dark:via-black/80 dark:to-black/40"></div>
+        <div className="absolute inset-0 bg-linear-to-r from-brand-blue/95 via-brand-blue/70 to-transparent dark:from-black/95 dark:via-black/80 dark:to-black/40"></div>
       </div>
       {/* Contenido principal (Grid responsivo) */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full text-left">

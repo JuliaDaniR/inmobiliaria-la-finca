@@ -47,7 +47,7 @@ function FeaturedProperties() {
           </div>
 
           {/* Contenido (Flex grow para empujar el footer) */}
-          <div className="flex flex-col flex-grow p-5 text-left">
+          <div className="flex flex-col grow  p-5 text-left">
             <div className="flex justify-between items-start gap-2 mb-2">
               <h3 className="text-base font-bold text-brand-blue dark:text-white group-hover:text-brand-gold transition-colors font-serif">
                 Villa Horizonte
@@ -147,7 +147,7 @@ function FeaturedProperties() {
             </span>
           </div>
 
-          <div className="flex flex-col flex-grow p-5 text-left">
+          <div className="flex flex-col grow p-5 text-left">
             <div className="flex justify-between items-start gap-2 mb-2">
               <h3 className="text-base font-bold text-brand-blue dark:text-white group-hover:text-brand-gold transition-colors font-serif">
                 Ático Castellana
@@ -243,7 +243,7 @@ function FeaturedProperties() {
             <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors duration-300"></div>
           </div>
 
-          <div className="flex flex-col flex-grow p-5 text-left">
+          <div className="flex flex-col grow p-5 text-left">
             <div className="flex justify-between items-start gap-2 mb-2">
               <h3 className="text-base font-bold text-brand-blue dark:text-white group-hover:text-brand-gold transition-colors font-serif">
                 Estate La Finca II
