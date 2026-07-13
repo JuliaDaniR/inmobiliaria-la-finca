@@ -13,7 +13,7 @@ function Footer() {
                 La Finca
               </span>
             </div>
-            <p className="text-[11px] md:text-xs text-brand-muted dark:text-gray-400 font-light leading-relaxed max-w-[220px]">
+            <p className="text-[11px] md:text-xs text-brand-muted dark:text-gray-400 font-light leading-relaxed max-w-55">
               Referente indiscutible en la gestión inmobiliaria de alto standing. Su patrimonio, nuestra prioridad.
             </p>
           </div>

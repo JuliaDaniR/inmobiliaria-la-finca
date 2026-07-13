@@ -7,23 +7,27 @@ function ScrollReveal({ children }) {
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
-        // Hacemos un "toggle": si está en pantalla es true, si sale de pantalla es false
         setIsVisible(entry.isIntersecting);
       });
     }, {
-      threshold: 0.10 // Bajamos un poco el umbral para que responda más rápido al hacer saltos directos
+      threshold: 0.10
     });
 
-    if (domRef.current) {
-      observer.observe(domRef.current);
+    // Copiamos el elemento actual del ref a una variable local
+    const currentRef = domRef.current;
+
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
+    // Retornamos la función de limpieza usando la variable local
     return () => {
-      if (domRef.current) {
-        observer.unobserve(domRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, []);
+
 
   return (
     <div

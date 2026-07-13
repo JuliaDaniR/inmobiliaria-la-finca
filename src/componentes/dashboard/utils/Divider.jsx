@@ -4,7 +4,7 @@ function Divider() {
     <div className="relative my-16 flex items-center justify-center max-w-5xl mx-auto px-4">
       {/* Línea difuminada en los extremos */}
       <div className="absolute inset-0 flex items-center" aria-hidden="true">
-        <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-brand-gold/30 to-transparent dark:via-brand-gold/15"></div>
+        <div className="w-full h-px bg-linear-to-r from-transparent via-brand-gold/30 to-transparent dark:via-brand-gold/15"></div>
       </div>
       
       {/* Detalle del Diamante Dorado central */}
