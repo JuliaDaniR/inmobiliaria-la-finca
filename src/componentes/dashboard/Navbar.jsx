@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 function Navbar() {
   // Estado para controlar el modo oscuro
@@ -29,13 +30,20 @@ function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-30">
           {/* Logo / Nombre de marca */}
-          <div className="flex items-center justify-between h-16 gap-3 cursor-pointer">
+          <Link
+            to="/"
+            className="flex items-center justify-between h-16 gap-3 cursor-pointer"
+          >
             <img
-               src={darkMode ? "/img/logo-la-finca.png" : "/img/logo-la-finca-light.png"} 
+              src={
+                darkMode
+                  ? "/img/logo-la-finca.png"
+                  : "/img/logo-la-finca-light.png"
+              }
               alt="Logo La Finca"
               className="h-36 w-auto object-contain dark:brightness-125"
             />
-          </div>
+          </Link>
 
           {/* Enlaces de Navegación (Centrados) */}
           <div className="hidden md:flex items-center gap-8">
@@ -107,13 +115,19 @@ function Navbar() {
               )}
             </button>
 
-            <button className="hidden sm:inline-block px-4 py-2 text-xs font-semibold text-brand-blue dark:text-brand-gold border border-brand-blue/30 dark:border-brand-gold/30 rounded-lg hover:bg-brand-blue/5 dark:hover:bg-brand-gold/10 transition-all duration-300 cursor-pointer">
+            <Link
+              to="/login"
+              className="hidden sm:inline-block px-4 py-2 text-xs font-semibold text-brand-blue dark:text-brand-gold border border-brand-blue/30 dark:border-brand-gold/30 rounded-lg hover:bg-brand-blue/5 dark:hover:bg-brand-gold/10 transition-all duration-300 cursor-pointer"
+            >
               Iniciar Gestión
-            </button>
+            </Link>
 
-            <button className="px-4 py-2 text-xs font-semibold text-white bg-brand-blue dark:bg-brand-gold rounded-lg hover:shadow-lg hover:shadow-brand-blue/20 dark:hover:shadow-brand-gold/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer">
+            <Link
+              to="/registro"
+              className="px-4 py-2 text-xs font-semibold text-white bg-brand-blue dark:bg-brand-gold rounded-lg hover:shadow-lg hover:shadow-brand-blue/20 dark:hover:shadow-brand-gold/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+            >
               Registrarse
-            </button>
+            </Link>
           </div>
         </div>
       </div>
