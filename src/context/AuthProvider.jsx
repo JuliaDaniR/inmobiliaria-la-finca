@@ -1,69 +1,33 @@
-import { useEffect, useContext, useState } from "react";
+import { useState } from "react";
 import { AuthContext } from "./AuthContext";
+import { loginUsuarioAPI } from "../services/auth.service";
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem("la_finca_user");
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem("la_finca_session");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
-  }, []);
-
-  //Funcion simulada para el login
-  const login = (email, password) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        let rol = "CLIENTE";
-        let nombre = "Javier";
-        let apellido = "Gomez";
-
-        //Si inicia con 'secretario@lafinca.com', le asignamos rol administrativo
-        if (email.toLowerCase() === "secretario@lafinca.com") {
-          rol = "SECRETARIO";
-          nombre = "Carlos";
-          apellido = "Mendoza";
-        }
-
-        const userData = {
-          email: email,
-          nombre: nombre,
-          apellido: apellido,
-          rol: rol,
-          avatar:
-            rol === "SECRETARIO"
-              ? "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-              : null,
-        };
-
-        setUser(userData);
-
-        localStorage.setItem("la_finca_session", JSON.stringify(userData));
-        resolve(userData);
-      }, 1000);
-    });
+  const login = async (email, password) => {
+    const data = await loginUsuarioAPI(email, password);
+    setUser(data.user);
+    localStorage.setItem("la_finca_token", data.token);
+    localStorage.setItem("la_finca_user", JSON.stringify(data.user));
+    return data.user;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("la_finca_session");
+    localStorage.removeItem("la_finca_token");
+    localStorage.removeItem("la_finca_user");
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, login, logout, loading: false }}>
+      {children}
     </AuthContext.Provider>
   );
 }
 
-// Hook personalizado
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth debe usarse dentro de un AuthProvider");
-  }
-  return context;
-}
+// eslint-disable-next-line react-refresh/only-export-components
+export { useAuth } from "./AuthContext";
