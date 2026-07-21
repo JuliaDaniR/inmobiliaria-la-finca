@@ -167,7 +167,9 @@ function Registro() {
                   : "/img/logo-la-finca-light.png"
               }
               alt="La Finca"
-              className="h-36 w-auto object-contain dark:brightness-125"
+              className={`w-auto object-contain transition-all duration-300 ${
+                darkMode ? "h-44 scale-110 brightness-125" : "h-36"
+              }`}
             />
           </div>
 
