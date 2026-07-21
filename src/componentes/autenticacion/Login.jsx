@@ -1,10 +1,19 @@
+// ============================================================================
+// COMPONENTE DE INICIO DE SESIÓN (Login.jsx)
+// Gestiona la interfaz del formulario de Login, validación en tiempo real,
+// comunicación con AuthProvider y redirección según el ROL del usuario.
+// ============================================================================
+
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthProvider";
 
 function Login() {
-  const { login } = useAuth();
-  const location = useLocation();
+  // HOOKS Y ESTADOS
+  const { login } = useAuth();                  // Obtenemos la función de login compartida por el AuthProvider
+  const location = useLocation();              // Permite leer el estado pasado mediante la redirección (ej: mensaje de registro exitoso)
+  const navigate = useNavigate();                // Hook de React Router para redirigir entre páginas de forma programática
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -12,23 +21,26 @@ function Login() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || "");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
-  // Desvanecer el cartel de éxito después de 5 segundos
+  // EFECTO: Ocultar el cartel verde de éxito automáticamente pasados 5 segundos (5000ms)
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => {
         setSuccessMessage("");
       }, 5000);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(timer); // Limpiamos el temporizador si el componente se desmonta
     }
   }, [successMessage]);
 
+  /**
+   * MANEJADOR DEL ENVÍO DEL FORMULARIO
+   */
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Evitamos la recarga completa de la página propia de los formularios HTML estándar
     setError("");
     setSuccessMessage("");
 
+    // Validaciones básicas de presencia de datos
     if (!email || !password) {
       setError("Por favor, complete todos los campos.");
       return;
@@ -41,16 +53,17 @@ function Login() {
 
     setIsLoading(true);
     try {
-      // Llamar al login simulado del Contexto
+      // Intentamos autenticar llamando a la función del AuthProvider
       const loggedUser = await login(email, password);
 
-      // Redirección condicionada según el Rol del usuario
+      // REDIRECCIÓN CONDICIONAL SEGÚN EL ROL DEL USUARIO
       if (loggedUser.rol === "SECRETARIO") {
-        navigate("/admin"); // Los secretarios van al panel de administración
+        navigate("/admin"); // Los secretarios (administradores) ingresan al Panel de Control
       } else {
-        navigate("/"); // Los clientes vuelven a la web pública
+        navigate("/");      // Los clientes son redirigidos a la página principal pública
       }
     } catch (err) {
+      // Capturamos el error devuelto por la API backend y lo mostramos en el banner rojo
       setError(err.message || "Credenciales incorrectas o error en el inicio de sesión.");
     } finally {
       setIsLoading(false);

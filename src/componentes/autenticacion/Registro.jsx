@@ -1,10 +1,16 @@
+// ============================================================================
+// COMPONENTE DE REGISTRO EN PASOS (Registro.jsx)
+// Formulario multipasos (3 pasos) con validaciones en tiempo real y lectura de avatar Base64.
+// ============================================================================
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { registrarUsuarioAPI } from "../../services/auth.service";
 
 function Registro() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(1); // Controla el número de paso activo (1, 2 o 3)
+  
   const [darkMode] = useState(() => {
     if (typeof window !== "undefined") {
       return (
@@ -15,7 +21,7 @@ function Registro() {
     return false;
   });
 
-  // Estado del formulario
+  // ESTADO DEL FORMULARIO (Agrupa todos los campos en un solo objeto)
   const [formData, setFormData] = useState({
     nombre: "",
     apellido: "",
@@ -33,28 +39,39 @@ function Registro() {
     foto: "",
   });
 
-  const [fotoPreview, setFotoPreview] = useState(null);
+  const [fotoPreview, setFotoPreview] = useState(null); // URL Base64 para la vista previa de la foto
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  /**
+   * MANEJADOR GENÉRICO DE CAMBIOS EN INPUTS
+   * Actualiza la propiedad correspondiente en formData según el id del input.
+   */
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData((prev) => ({ ...prev, [id]: value }));
   };
 
+  /**
+   * MANEJADOR DE SELECCIÓN DE FOTO DE PERFIL
+   * Utiliza la API FileReader para convertir la imagen a un string Base64 utilizable.
+   */
   const handleFotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFotoPreview(reader.result);
-        setFormData((prev) => ({ ...prev, foto: reader.result }));
+        setFotoPreview(reader.result); // Para mostrar la vista previa en pantalla
+        setFormData((prev) => ({ ...prev, foto: reader.result })); // Guarda la imagen en el estado del formulario
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Validaciones por paso
+  /**
+   * VALIDACIONES POR PASO
+   * Comprueba que los campos requeridos del paso actual estén completos antes de avanzar.
+   */
   const validateStep = () => {
     setError("");
     if (step === 1) {
@@ -84,22 +101,27 @@ function Registro() {
     return true;
   };
 
+  // AVANZAR DE PASO
   const handleNextStep = () => {
     if (validateStep()) {
       setStep((prev) => prev + 1);
     }
   };
 
+  // RETROCEDER DE PASO
   const handlePrevStep = () => {
     setError("");
     setStep((prev) => prev - 1);
   };
 
+  /**
+   * ENVÍO FINAL DEL REGISTRO A LA API BACKEND
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Si no está en el último paso, avanzar de paso en lugar de registrar
+    // Si aún no está en el último paso (Paso 3), solo avanza de paso en lugar de registrar
     if (step < 3) {
       handleNextStep();
       return;
@@ -110,9 +132,11 @@ function Registro() {
     setIsLoading(true);
 
     try {
+      // Enviamos el objeto formData a la API mediante auth.service.js
       await registrarUsuarioAPI(formData);
       setIsLoading(false);
-      // Pasamos un mensaje de éxito para mostrar en la pantalla de Login
+      
+      // Redirigimos a la pantalla de Login adjuntando un estado con el mensaje de éxito
       navigate("/login", { state: { successMessage: "¡Registro completado con éxito! Por favor, inicie sesión." } });
     } catch (err) {
       setError(err.message || "Ocurrió un error al registrar el usuario.");
