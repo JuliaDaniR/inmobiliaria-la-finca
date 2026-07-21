@@ -1,36 +1,27 @@
-import React from "react";
+import { useEffect, useState } from "react";
+import { getInmuebles } from "../../services/inmuebles.service";
 
 export default function PanelControl() {
-  // Datos mockeados para la tabla de actividad reciente
-  const actividades = [
-    {
-      id: 1,
-      inmueble: "Av. del Libertador 1200 - CABA",
-      cliente: "Roberto Jiménez",
-      monto: "$1,250.00",
-      fecha: "05 Oct, 2023",
-      estado: "ACTIVO",
-      imagen: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=100&q=80",
-    },
-    {
-      id: 2,
-      inmueble: "Calle Corrientes 450 - Rosario",
-      cliente: "Elena Martínez",
-      monto: "$3,300.00",
-      fecha: "04 Oct, 2023",
-      estado: "PENDIENTE",
-      imagen: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=100&q=80",
-    },
-    {
-      id: 3,
-      inmueble: "Bv. Chacabuco 800 - Córdoba",
-      cliente: "Soluciones Globales S.A.",
-      monto: "$12,000.00",
-      fecha: "02 Oct, 2023",
-      estado: "CERRADO",
-      imagen: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=100&q=80",
-    },
-  ];
+  const [inmuebles, setInmuebles] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const cargarInmuebles = async () => {
+      try {
+        const data = await getInmuebles();
+        setInmuebles(data);
+      } catch (error) {
+        console.error("Error al obtener los inmuebles para el panel admin:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarInmuebles();
+  }, []);
+
+  // Primer inmueble para la tarjeta destacada
+  const inmuebleDestacado = inmuebles[0];
 
   return (
     <div className="space-y-8">
@@ -50,9 +41,9 @@ export default function PanelControl() {
         </button>
       </div>
 
-      {/* 2. TARJETAS DE MÉTRICAS (Módulos principales) */}
+      {/* 2. TARJETAS DE MÉTRICAS (Originales intactas) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Tarjeta 1 */}
+        {/* Tarjeta 1 - Total Inmuebles */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between h-40 relative overflow-hidden transition-colors duration-300">
           <div className="flex justify-between items-start">
             <div className="p-3 bg-[#024384]/10 rounded-lg text-[#024384] dark:text-blue-400">
@@ -60,18 +51,18 @@ export default function PanelControl() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
-            <span className="text-[10px] font-bold px-2 py-1 bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 rounded-md">-12%</span>
+            <span className="text-[10px] font-bold px-2 py-1 bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 rounded-md">ACTUALIZADO</span>
           </div>
           <div>
             <p className="text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider">Total Inmuebles</p>
-            <p className="text-3xl font-extrabold text-slate-900 dark:text-brand-text mt-1">142</p>
+            <p className="text-3xl font-extrabold text-slate-900 dark:text-brand-text mt-1">{loading ? "..." : inmuebles.length}</p>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-100 dark:bg-slate-800">
-            <div className="h-full bg-[#826229] rounded-r-full" style={{ width: "65%" }}></div>
+            <div className="h-full bg-[#826229] rounded-r-full" style={{ width: "100%" }}></div>
           </div>
         </div>
 
-        {/* Tarjeta 2 */}
+        {/* Tarjeta 2 - Alquileres Activos */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between h-40 relative overflow-hidden transition-colors duration-300">
           <div className="flex justify-between items-start">
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg text-emerald-600 dark:text-emerald-400">
@@ -90,7 +81,7 @@ export default function PanelControl() {
           </div>
         </div>
 
-        {/* Tarjeta 3 */}
+        {/* Tarjeta 3 - Recibos Pendientes */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between h-40 relative overflow-hidden transition-colors duration-300">
           <div className="flex justify-between items-start">
             <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-lg text-red-600 dark:text-red-400">
@@ -109,7 +100,7 @@ export default function PanelControl() {
           </div>
         </div>
 
-        {/* Tarjeta 4 */}
+        {/* Tarjeta 4 - Ingresos del Mes */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between h-40 relative overflow-hidden transition-colors duration-300">
           <div className="flex justify-between items-start">
             <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-[#024384] dark:text-blue-400">
@@ -129,16 +120,14 @@ export default function PanelControl() {
         </div>
       </div>
 
-      {/* 3. SECCIÓN INTERMEDIA: Acciones Rápidas e Inmueble Destacado */}
+      {/* 3. SECCIÓN INTERMEDIA: Acciones Rápidas e Inmueble Destacado Dinámico */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Acciones Rápidas (1 Columna) */}
+        {/* Acciones Rápidas */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between transition-colors duration-300">
           <div>
             <h2 className="text-lg font-bold text-slate-950 dark:text-brand-text mb-6">Acciones Rápidas</h2>
             <div className="space-y-4">
-              
-              {/* Acción 1 */}
               <button className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-[#826229] dark:hover:border-[#C69B56] transition-all group cursor-pointer">
                 <div className="flex items-center gap-3.5">
                   <div className="p-2 bg-[#826229]/10 rounded-lg text-[#826229] dark:text-brand-gold">
@@ -153,7 +142,6 @@ export default function PanelControl() {
                 </svg>
               </button>
 
-              {/* Acción 2 */}
               <button className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-[#826229] dark:hover:border-[#C69B56] transition-all group cursor-pointer">
                 <div className="flex items-center gap-3.5">
                   <div className="p-2 bg-[#826229]/10 rounded-lg text-[#826229] dark:text-brand-gold">
@@ -168,7 +156,6 @@ export default function PanelControl() {
                 </svg>
               </button>
 
-              {/* Acción 3 */}
               <button className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-[#826229] dark:hover:border-[#C69B56] transition-all group cursor-pointer">
                 <div className="flex items-center gap-3.5">
                   <div className="p-2 bg-[#826229]/10 rounded-lg text-[#826229] dark:text-brand-gold">
@@ -182,15 +169,16 @@ export default function PanelControl() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
-
             </div>
           </div>
         </div>
 
-        {/* Inmueble Destacado (2 Columnas) */}
-        <div className="lg:col-span-2 relative rounded-xl overflow-hidden shadow-sm h-72 lg:h-auto min-h-[280px] bg-cover bg-center group" style={{ backgroundImage: "url('/img/inicio-la-finca.png')" }}>
-          {/* Overlay de gradiente oscuro */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent"></div>
+        {/* Inmueble Destacado (Usa el primer inmueble del array si existe) */}
+        <div 
+          className="lg:col-span-2 relative rounded-xl overflow-hidden shadow-sm h-72 lg:h-auto min-h-70 bg-cover bg-center group transition-all duration-500" 
+          style={{ backgroundImage: `url('${inmuebleDestacado?.fotos || '/img/inicio-la-finca.png'}')` }}
+        >
+          <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-900/60 to-transparent"></div>
           
           <div className="absolute inset-0 p-6 flex flex-col justify-between text-white">
             <span className="self-start text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 bg-[#826229] dark:bg-[#C69B56] rounded-md shadow-md">
@@ -198,9 +186,11 @@ export default function PanelControl() {
             </span>
             
             <div className="space-y-3">
-              <h3 className="text-2xl font-bold tracking-tight">Villa Las Palmeras - Sector A</h3>
-              <p className="text-slate-200 text-sm max-w-xl font-light">
-                Esta propiedad ha generado un rendimiento del 14% este trimestre. Revisión de mantenimiento programada para el 15 de Octubre.
+              <h3 className="text-2xl font-bold tracking-tight">
+                {inmuebleDestacado ? `${inmuebleDestacado.tipo_inmueble} - ${inmuebleDestacado.direccion}` : "Villa Las Palmeras - Sector A"}
+              </h3>
+              <p className="text-slate-200 text-sm max-w-xl font-light line-clamp-2">
+                {inmuebleDestacado?.observaciones || "Esta propiedad ha generado un rendimiento del 14% este trimestre. Revisión de mantenimiento programada."}
               </p>
               <button className="bg-white hover:bg-slate-100 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs transition-colors shadow-md hover:shadow-lg cursor-pointer">
                 Ver Detalles
@@ -210,81 +200,95 @@ export default function PanelControl() {
         </div>
       </div>
 
-      {/* 4. SECCIÓN INFERIOR: Tabla de Actividad Reciente */}
+      {/* 4. SECCIÓN INFERIOR: Tabla de Inmuebles Dinámica */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-colors duration-300">
         <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-slate-950 dark:text-brand-text">Actividad Reciente</h2>
-          <a href="#" onClick={(e) => e.preventDefault()} className="text-xs font-bold text-[#826229] dark:text-brand-gold hover:underline flex items-center gap-1">
-            Ver historial completo
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
+          <h2 className="text-lg font-bold text-slate-950 dark:text-brand-text">Inmuebles Registrados</h2>
+          <span className="text-xs font-bold text-[#826229] dark:text-brand-gold">
+            Total: {inmuebles.length}
+          </span>
         </div>
         
-        {/* Tabla Responsive */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-100 dark:border-slate-800">
-                <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider pl-6">Inmueble</th>
-                <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider">Cliente</th>
-                <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider">Monto</th>
-                <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider">Fecha</th>
-                <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider">Estado</th>
-                <th className="p-4 text-right pr-6"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {actividades.map((act) => (
-                <tr key={act.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/20 transition-colors">
-                  {/* Inmueble con Miniatura */}
-                  <td className="p-4 pl-6 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-950 overflow-hidden flex-shrink-0 border border-slate-200/50 dark:border-slate-800">
-                      <img src={act.imagen} alt={act.inmueble} className="w-full h-full object-cover" />
-                    </div>
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{act.inmueble}</span>
-                  </td>
-                  
-                  {/* Cliente */}
-                  <td className="p-4 text-sm text-slate-600 dark:text-brand-muted">{act.cliente}</td>
-                  
-                  {/* Monto */}
-                  <td className="p-4 text-sm font-extrabold text-[#024384] dark:text-blue-400">{act.monto}</td>
-                  
-                  {/* Fecha */}
-                  <td className="p-4 text-sm text-slate-500 dark:text-brand-muted">{act.fecha}</td>
-                  
-                  {/* Estado */}
-                  <td className="p-4">
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
-                      act.estado === "ACTIVO" 
-                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400" 
-                        : act.estado === "PENDIENTE"
-                        ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                    }`}>
-                      {act.estado}
-                    </span>
-                  </td>
-
-                  {/* Acciones */}
-                  <td className="p-4 text-right pr-6">
-                    <button className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
-                  </td>
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#826229]"></div>
+          </div>
+        ) : inmuebles.length === 0 ? (
+          <div className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">
+            No hay inmuebles registrados en la base de datos.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 dark:bg-slate-950/40 border-b border-slate-100 dark:border-slate-800">
+                  <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider pl-6">Inmueble</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider">Tipo</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider">Monto</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider">Ubicación</th>
+                  <th className="p-4 text-[10px] font-bold text-slate-400 dark:text-brand-muted uppercase tracking-wider">Estado</th>
+                  <th className="p-4 text-right pr-6"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {inmuebles.map((act) => (
+                  <tr key={act.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/20 transition-colors">
+                    {/* Inmueble con Miniatura */}
+                    <td className="p-4 pl-6 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-950 overflow-hidden shrink-0 border border-slate-200/50 dark:border-slate-800">
+                        <img 
+                          src={act.fotos || "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=100&q=80"} 
+                          alt={act.direccion} 
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                      <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{act.direccion}</span>
+                    </td>
+                    
+                    {/* Tipo */}
+                    <td className="p-4 text-sm text-slate-600 dark:text-brand-muted">{act.tipo_inmueble}</td>
+                    
+                    {/* Monto / Precio */}
+                    <td className="p-4 text-sm font-extrabold text-[#024384] dark:text-blue-400">
+                      ${Number(act.precio).toLocaleString("es-AR")} USD
+                    </td>
+                    
+                    {/* Ubicación */}
+                    <td className="p-4 text-sm text-slate-500 dark:text-brand-muted">
+                      {act.localidad}{act.provincia ? `, ${act.provincia}` : ""}
+                    </td>
+                    
+                    {/* Estado */}
+                    <td className="p-4">
+                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${
+                        act.estado === "DISPONIBLE" || act.estado === "ACTIVO" 
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400" 
+                          : act.estado === "PENDIENTE" || act.estado === "RESERVADO"
+                          ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
+                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                      }`}>
+                        {act.estado}
+                      </span>
+                    </td>
 
-        {/* Paginación simple de tabla */}
+                    {/* Acciones */}
+                    <td className="p-4 text-right pr-6">
+                      <button className="p-1 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Paginación simple */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs text-slate-400 dark:text-brand-muted px-6">
-          <span>MOSTRANDO 3 REGISTROS RECIENTES</span>
+          <span>MOSTRANDO {inmuebles.length} REGISTROS</span>
           <div className="flex gap-1.5">
             <button className="p-1.5 border border-slate-200 dark:border-slate-800 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-500 cursor-pointer disabled:opacity-50" disabled>
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">

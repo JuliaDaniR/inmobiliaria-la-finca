@@ -1,12 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { registrarUsuarioAPI } from "../../services/auth.service";
 
 function Registro() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [darkMode, setDarkMode] = useState(() => {
+  const [darkMode] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("theme") === "dark";
+      return (
+        document.documentElement.classList.contains("dark") ||
+        localStorage.getItem("theme") === "dark"
+      );
     }
     return false;
   });
@@ -14,7 +18,7 @@ function Registro() {
   // Estado del formulario
   const [formData, setFormData] = useState({
     nombre: "",
-    apellidos: "",
+    apellido: "",
     email: "",
     telefono: "",
     password: "",
@@ -26,18 +30,12 @@ function Registro() {
     ciudad: "",
     provincia: "",
     observaciones: "",
+    foto: "",
   });
 
-  const [fotoPerfil, setFotoPerfil] = useState(null);
   const [fotoPreview, setFotoPreview] = useState(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  // Sincronizar el tema
-  useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setDarkMode(isDark);
-  }, []);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -47,10 +45,10 @@ function Registro() {
   const handleFotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFotoPerfil(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setFotoPreview(reader.result);
+        setFormData((prev) => ({ ...prev, foto: reader.result }));
       };
       reader.readAsDataURL(file);
     }
@@ -62,7 +60,7 @@ function Registro() {
     if (step === 1) {
       if (
         !formData.nombre ||
-        !formData.apellidos ||
+        !formData.apellido ||
         !formData.email ||
         !formData.password ||
         !formData.confirmPassword
@@ -97,20 +95,29 @@ function Registro() {
     setStep((prev) => prev - 1);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Si no está en el último paso, avanzar de paso en lugar de registrar
+    if (step < 3) {
+      handleNextStep();
+      return;
+    }
 
     if (!validateStep()) return;
 
     setIsLoading(true);
 
-    // Simular registro exitoso
-    setTimeout(() => {
+    try {
+      await registrarUsuarioAPI(formData);
       setIsLoading(false);
-      // Redirigir a Login o Dashboard
-      navigate("/login");
-    }, 2000);
+      // Pasamos un mensaje de éxito para mostrar en la pantalla de Login
+      navigate("/login", { state: { successMessage: "¡Registro completado con éxito! Por favor, inicie sesión." } });
+    } catch (err) {
+      setError(err.message || "Ocurrió un error al registrar el usuario.");
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -186,7 +193,7 @@ function Registro() {
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 rounded-r-lg text-sm text-red-700 dark:text-red-300 flex items-center gap-2 animate-shake">
               <svg
-                className="w-5 h-5 flex-shrink-0"
+                className="w-5 h-5 shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -230,16 +237,16 @@ function Registro() {
                   </div>
                   <div>
                     <label
-                      htmlFor="apellidos"
+                      htmlFor="apellido"
                       className="block text-[11px] font-bold uppercase tracking-wider text-[#5A6B82] dark:text-brand-muted mb-1.5"
                     >
-                      Apellidos
+                      Apellido
                     </label>
                     <input
-                      id="apellidos"
+                      id="apellido"
                       type="text"
                       placeholder="Ej: Garcia Ortiz"
-                      value={formData.apellidos}
+                      value={formData.apellido}
                       onChange={handleChange}
                       className="block w-full px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-[#826229]/20 focus:border-[#826229] dark:focus:border-[#C69B56] transition-all bg-slate-50/30 dark:bg-slate-900/20 focus:bg-white dark:focus:bg-slate-950 text-sm"
                     />
@@ -252,7 +259,7 @@ function Registro() {
                       htmlFor="email"
                       className="block text-[11px] font-bold uppercase tracking-wider text-[#5A6B82] dark:text-brand-muted mb-1.5"
                     >
-                      Email corporativo
+                      Email
                     </label>
                     <input
                       id="email"
@@ -449,7 +456,8 @@ function Registro() {
                     Información Adicional (Opcional)
                   </h3>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleSubmit}
                     className="text-xs text-[#826229] dark:text-[#C69B56] hover:underline font-semibold"
                   >
                     Omitir y Finalizar
@@ -462,7 +470,7 @@ function Registro() {
                     Foto de Perfil
                   </span>
                   <div className="flex items-center gap-6 p-4 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/30 dark:bg-slate-900/10">
-                    <div className="w-20 h-20 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-20 h-20 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
                       {fotoPreview ? (
                         <img
                           src={fotoPreview}
@@ -560,7 +568,8 @@ function Registro() {
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit}
                   disabled={isLoading}
                   className="flex-1 py-2.5 px-6 rounded-lg font-semibold text-sm text-white bg-[#826229] dark:bg-[#C69B56] hover:bg-[#6e5220] dark:hover:bg-[#b08443] transition-all flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] disabled:opacity-70 cursor-pointer"
                 >
@@ -633,7 +642,7 @@ function Registro() {
         style={{ backgroundImage: "url('/img/inicio-la-finca.png')" }}
       >
         {/* Capa de superposición con gradiente premium azul marino */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#024384]/95 via-[#0a1e36]/90 to-[#05101e]/98 dark:from-[#0b1320]/95 dark:via-[#0c1a30]/90 dark:to-[#070d18]/98" />
+        <div className="absolute inset-0 bg-linear-to-b from-[#024384]/95 via-[#0a1e36]/90 to-[#05101e]/98 dark:from-[#0b1320]/95 dark:via-[#0c1a30]/90 dark:to-[#070d18]/98" />
 
         {/* Botón Volver al Dashboard encima del panel visual */}
         <div className="relative z-10 flex justify-end">

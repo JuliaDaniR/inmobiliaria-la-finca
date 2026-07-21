@@ -1,20 +1,33 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthProvider";
 
 function Login() {
   const { login } = useAuth();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || "");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Desvanecer el cartel de éxito después de 5 segundos
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
 
     if (!email || !password) {
       setError("Por favor, complete todos los campos.");
@@ -38,24 +51,21 @@ function Login() {
         navigate("/"); // Los clientes vuelven a la web pública
       }
     } catch (err) {
-      setError("Credenciales incorrectas o error en el inicio de sesión.");
+      setError(err.message || "Credenciales incorrectas o error en el inicio de sesión.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const [darkMode, setDarkMode] = useState(() => {
+  const [darkMode] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("theme") === "dark";
+      return (
+        document.documentElement.classList.contains("dark") ||
+        localStorage.getItem("theme") === "dark"
+      );
     }
     return false;
   });
-
-  // Sincronizar el estado por si cambia el tema en el DOM
-  useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
-    setDarkMode(isDark);
-  }, []);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8F9FA] dark:bg-brand-bg transition-colors duration-300">
@@ -65,7 +75,7 @@ function Login() {
         style={{ backgroundImage: "url('/img/inicio-la-finca.png')" }}
       >
         {/* Capa de superposición con gradiente premium azul marino */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#024384]/90 via-[#0a1e36]/85 to-[#05101e]/95 dark:from-[#0b1320]/95 dark:via-[#0c1a30]/90 dark:to-[#070d18]/98" />
+        <div className="absolute inset-0 bg-linear-to-b from-[#024384]/90 via-[#0a1e36]/85 to-[#05101e]/95 dark:from-[#0b1320]/95 dark:via-[#0c1a30]/90 dark:to-[#070d18]/98" />
 
         {/* Gráfico decorativo de fondo: líneas y puntos de analítica / conexión */}
         <svg
@@ -229,11 +239,31 @@ function Login() {
             </p>
           </div>
 
+          {/* Alerta de Éxito */}
+          {successMessage && (
+            <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-500 rounded-r-lg text-sm text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+              <svg
+                className="w-5 h-5 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>{successMessage}</span>
+            </div>
+          )}
+
           {/* Alerta de Error */}
           {error && (
             <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border-l-4 border-red-500 rounded-r-lg text-sm text-red-700 dark:text-red-300 flex items-center gap-2 animate-shake">
               <svg
-                className="w-5 h-5 flex-shrink-0"
+                className="w-5 h-5 shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

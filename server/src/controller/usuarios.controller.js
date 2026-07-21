@@ -22,6 +22,24 @@ export const registrarUsuario = async (req, res) => {
     foto,
   } = req.body;
 
+  // Validaciones básicas
+  if (!nombre || typeof nombre !== 'string' || !nombre.trim()) {
+    return res.status(400).json({ message: "El nombre es obligatorio." });
+  }
+  if (!apellido || typeof apellido !== 'string' || !apellido.trim()) {
+    return res.status(400).json({ message: "El apellido es obligatorio." });
+  }
+  if (!email || typeof email !== 'string' || !email.trim()) {
+    return res.status(400).json({ message: "El email es obligatorio." });
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: "El formato de email no es válido." });
+  }
+  if (!password || typeof password !== 'string' || password.length < 6) {
+    return res.status(400).json({ message: "La contraseña es obligatoria y debe tener al menos 6 caracteres." });
+  }
+
   try {
     //Validar si el email existe
     const [existingUser] = await pool.query(
@@ -37,6 +55,13 @@ export const registrarUsuario = async (req, res) => {
     //Encriptar la contraseña
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Verificar si es el primer usuario en registrarse o si el correo contiene 'secretario'
+    const [totalRows] = await pool.query("SELECT COUNT(*) AS total FROM usuarios");
+    const esPrimerUsuario = totalRows[0].total === 0;
+    const esEmailSecretario = email.toLowerCase().includes("secretario");
+
+    const rolAsignado = rol || (esPrimerUsuario || esEmailSecretario ? "SECRETARIO" : "CLIENTE");
 
     //Crear usuario
     const sql = `
@@ -56,7 +81,7 @@ INSERT INTO usuarios(nombre, apellido, email, telefono, password, dni, fechaNaci
       ciudad || null,
       provincia || null,
       observaciones || null,
-      rol || "CLIENTE", // Por defecto se registra como cliente
+      rolAsignado,
       foto || null,
     ];
 
@@ -77,13 +102,19 @@ INSERT INTO usuarios(nombre, apellido, email, telefono, password, dni, fechaNaci
 export const loginUsuario = async (req, res) => {
   const { email, password } = req.body;
 
+  if (!email || !password) {
+    return res.status(400).json({
+      message: "El email y la contraseña son obligatorios."
+    });
+  }
+
   try {
-    const [rows] = await pool.query("SELECT * FROM usuarios WHERE email = ?", [
+    const [rows] = await pool.query("SELECT * FROM usuarios WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))", [
       email,
     ]);
     if (rows.length === 0) {
       return res.status(400).json({
-        message: "Credenciales inválidas(email o password son incorrectos",
+        message: "El correo electrónico ingresado no se encuentra registrado.",
       });
     }
 
@@ -93,7 +124,7 @@ export const loginUsuario = async (req, res) => {
     const match = await bcrypt.compare(password, usuario.password);
     if (!match) {
       return res.status(400).json({
-        message: "Credenciales invalidas, intente nuevamente",
+        message: "La contraseña ingresada es incorrecta.",
       });
     }
 

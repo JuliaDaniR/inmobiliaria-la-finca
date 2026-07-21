@@ -127,9 +127,9 @@ export default function AdminLayout() {
 
               {/* Avatar */}
               <div className="w-10 h-10 rounded-full bg-[#826229]/20 border border-slate-200 dark:border-slate-800 flex items-center justify-center overflow-hidden shadow-sm">
-                {user?.avatar ? (
+                {user?.foto || user?.avatar ? (
                   <img
-                    src={user.avatar}
+                    src={user.foto || user.avatar}
                     alt="Avatar"
                     className="w-full h-full object-cover"
                   />

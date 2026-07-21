@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthProvider";
 
 function Navbar() {
+  const { user, logout } = useAuth();
   // Estado para controlar el modo oscuro
   const [darkMode, setDarkMode] = useState(() => {
     // Al cargar la página, comprueba si el usuario ya tenía una preferencia guardada
@@ -115,19 +117,50 @@ function Navbar() {
               )}
             </button>
 
-            <Link
-              to="/login"
-              className="hidden sm:inline-block px-4 py-2 text-xs font-semibold text-brand-blue dark:text-brand-gold border border-brand-blue/30 dark:border-brand-gold/30 rounded-lg hover:bg-brand-blue/5 dark:hover:bg-brand-gold/10 transition-all duration-300 cursor-pointer"
-            >
-              Iniciar Gestión
-            </Link>
+            {user ? (
+              <div className="flex items-center gap-3">
+                {user?.foto || user?.avatar ? (
+                  <img
+                    src={user.foto || user.avatar}
+                    alt="Avatar"
+                    className="w-8 h-8 rounded-full object-cover border border-[#826229]/40 shadow-sm"
+                  />
+                ) : null}
+                <span className="text-xs font-semibold text-brand-text">
+                  Hola, {user.nombre}
+                </span>
+                {user.rol === "SECRETARIO" && (
+                  <Link
+                    to="/admin"
+                    className="px-3 py-1.5 text-xs font-semibold text-white bg-[#826229] dark:bg-[#C69B56] hover:bg-[#6e5220] dark:hover:bg-[#b08443] rounded-lg transition-all cursor-pointer"
+                  >
+                    Panel Admin
+                  </Link>
+                )}
+                <button
+                  onClick={logout}
+                  className="px-3 py-1.5 text-xs font-semibold text-brand-muted hover:text-red-600 dark:hover:text-red-400 border border-gray-200 dark:border-gray-800 rounded-lg transition-all cursor-pointer bg-transparent"
+                >
+                  Salir
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="hidden sm:inline-block px-4 py-2 text-xs font-semibold text-brand-blue dark:text-brand-gold border border-brand-blue/30 dark:border-brand-gold/30 rounded-lg hover:bg-brand-blue/5 dark:hover:bg-brand-gold/10 transition-all duration-300 cursor-pointer"
+                >
+                  Iniciar Gestión
+                </Link>
 
-            <Link
-              to="/registro"
-              className="px-4 py-2 text-xs font-semibold text-white bg-brand-blue dark:bg-brand-gold rounded-lg hover:shadow-lg hover:shadow-brand-blue/20 dark:hover:shadow-brand-gold/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
-            >
-              Registrarse
-            </Link>
+                <Link
+                  to="/registro"
+                  className="px-4 py-2 text-xs font-semibold text-white bg-brand-blue dark:bg-brand-gold rounded-lg hover:shadow-lg hover:shadow-brand-blue/20 dark:hover:shadow-brand-gold/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 cursor-pointer"
+                >
+                  Registrarse
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
