@@ -1,19 +1,18 @@
+
 // ============================================================================
 // CONTROLADOR DE USUARIOS (usuarios.controller.js)
-// Este archivo contiene la lógica de negocio para registrar e iniciar sesión usuarios.
+// Registro, inicio de sesión y gestión de clientes.
 // ============================================================================
 
 import pool from "../db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-/* global process */
 
-/**
- * REGISTRO DE USUARIO
- * Recibe los datos del cliente, los valida, encripta la contraseña y guarda el usuario en MySQL.
- */
+/* ============================================================================
+   REGISTRO DE USUARIO
+   ============================================================================ */
+
 export const registrarUsuario = async (req, res) => {
-  // Desestructuramos los campos enviados en la petición HTTP (req.body)
   const {
     nombre,
     apellido,
@@ -31,59 +30,97 @@ export const registrarUsuario = async (req, res) => {
     foto,
   } = req.body;
 
-  // 1. VALIDACIONES DE ENTRADA
-  // Verificamos que los datos requeridos no lleguen vacíos antes de tocar la base de datos
-  if (!nombre || typeof nombre !== 'string' || !nombre.trim()) {
-    return res.status(400).json({ message: "El nombre es obligatorio." });
-  }
-  if (!apellido || typeof apellido !== 'string' || !apellido.trim()) {
-    return res.status(400).json({ message: "El apellido es obligatorio." });
-  }
-  if (!email || typeof email !== 'string' || !email.trim()) {
-    return res.status(400).json({ message: "El email es obligatorio." });
+  // 1. VALIDACIONES
+
+  if (!nombre || typeof nombre !== "string" || !nombre.trim()) {
+    return res.status(400).json({
+      message: "El nombre es obligatorio.",
+    });
   }
 
-  // Expresión regular para validar formato de correo electrónico
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    return res.status(400).json({ message: "El formato de email no es válido." });
+  if (!apellido || typeof apellido !== "string" || !apellido.trim()) {
+    return res.status(400).json({
+      message: "El apellido es obligatorio.",
+    });
   }
-  if (!password || typeof password !== 'string' || password.length < 6) {
-    return res.status(400).json({ message: "La contraseña es obligatoria y debe tener al menos 6 caracteres." });
+
+  if (!email || typeof email !== "string" || !email.trim()) {
+    return res.status(400).json({
+      message: "El email es obligatorio.",
+    });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      message: "El formato de email no es válido.",
+    });
+  }
+
+  if (!password || typeof password !== "string" || password.length < 6) {
+    return res.status(400).json({
+      message:
+        "La contraseña es obligatoria y debe tener al menos 6 caracteres.",
+    });
   }
 
   try {
-    // 2. VERIFICACIÓN DE DUPLICADOS EN MYSQL
-    // Comprobamos si el correo electrónico ya está registrado en la tabla de usuarios
+    // 2. VERIFICAR SI EL EMAIL YA EXISTE
+
     const [existingUser] = await pool.query(
       "SELECT id FROM usuarios WHERE email = ?",
-      [email],
+      [email]
     );
+
     if (existingUser.length > 0) {
       return res.status(400).json({
-        message: "El email ya está registrado",
+        message: "El email ya está registrado.",
       });
     }
 
-    // 3. SEGURIDAD: ENCRIPTACIÓN DE CONTRASEÑA
-    // Generamos un 'salt' (semilla aleatoria) de 10 rondas y creamos un hash seguro de la contraseña
+    // 3. ENCRIPTAR CONTRASEÑA
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 4. ASIGNACIÓN AUTOMÁTICA DE ROL
-    // Si la base de datos no tiene usuarios registrados (es el 1º) o si el correo contiene 'secretario',
-    // le asignamos el rol 'SECRETARIO'. En caso contrario, será un 'CLIENTE'.
-    const [totalRows] = await pool.query("SELECT COUNT(*) AS total FROM usuarios");
+    // 4. ASIGNACIÓN DEL ROL
+
+    const [totalRows] = await pool.query(
+      "SELECT COUNT(*) AS total FROM usuarios"
+    );
+
     const esPrimerUsuario = totalRows[0].total === 0;
     const esEmailSecretario = email.toLowerCase().includes("secretario");
 
-    const rolAsignado = rol || (esPrimerUsuario || esEmailSecretario ? "SECRETARIO" : "CLIENTE");
+    const rolAsignado =
+      rol ||
+      (esPrimerUsuario || esEmailSecretario
+        ? "SECRETARIO"
+        : "CLIENTE");
 
-    // 5. INSERCIÓN EN LA BASE DE DATOS
-    // Usamos consultas preparadas con el símbolo '?' para prevenir ataques de Inyección SQL
+    // 5. INSERTAR USUARIO
+
     const sql = `
-INSERT INTO usuarios(nombre, apellido, email, telefono, password, dni, fechaNacimiento, genero, direccion, ciudad, provincia, observaciones, rol, foto)
- VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      INSERT INTO usuarios
+      (
+        nombre,
+        apellido,
+        email,
+        telefono,
+        password,
+        dni,
+        fechaNacimiento,
+        genero,
+        direccion,
+        ciudad,
+        provincia,
+        observaciones,
+        rol,
+        foto
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
 
     const values = [
       nombre,
@@ -104,75 +141,470 @@ INSERT INTO usuarios(nombre, apellido, email, telefono, password, dni, fechaNaci
 
     await pool.query(sql, values);
 
-    // Respuesta HTTP 201 (Creado) al frontend
     return res.status(201).json({
-      message: "Usuario registrado exitosamente",
+      message: "Usuario registrado exitosamente.",
     });
   } catch (error) {
-    console.error("Error al registrar el usuario: ", error);
+    console.error("Error al registrar el usuario:", error);
+
     return res.status(500).json({
-      message: "Error interno del servidor",
+      message: "Error interno del servidor.",
     });
   }
 };
 
-/**
- * INICIO DE SESIÓN (LOGIN)
- * Valida credenciales, comprueba la contraseña encriptada y genera un Token JWT.
- */
+/* ============================================================================
+   INICIO DE SESIÓN
+   ============================================================================ */
+
 export const loginUsuario = async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({
-      message: "El email y la contraseña son obligatorios."
+      message: "El email y la contraseña son obligatorios.",
     });
   }
 
   try {
-    // 1. BUSCAR USUARIO POR EMAIL
-    // Convertimos a minúsculas y eliminamos espacios al buscar en la base de datos
-    const [rows] = await pool.query("SELECT * FROM usuarios WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))", [
-      email,
-    ]);
+    // 1. BUSCAR USUARIO
+
+    const [rows] = await pool.query(
+      "SELECT * FROM usuarios WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))",
+      [email]
+    );
+
     if (rows.length === 0) {
       return res.status(400).json({
-        message: "El correo electrónico ingresado no se encuentra registrado.",
+        message:
+          "El correo electrónico ingresado no se encuentra registrado.",
       });
     }
 
     const usuario = rows[0];
 
-    // 2. VERIFICACIÓN DE CONTRASEÑA
-    // Comparamos la contraseña en texto plano ingresada con la contraseña encriptada de la BD usando bcrypt.compare
+    // 2. COMPROBAR CONTRASEÑA
+
     const match = await bcrypt.compare(password, usuario.password);
+
     if (!match) {
       return res.status(400).json({
         message: "La contraseña ingresada es incorrecta.",
       });
     }
 
-    // 3. GENERACIÓN DE TOKEN DE AUTENTICACIÓN (JWT)
-    // Firmamos un token que contiene el ID y el ROL del usuario con una expiración de 2 horas
+    // 3. GENERAR TOKEN JWT
+
     const token = jwt.sign(
-      { id: usuario.id, rol: usuario.rol },
+      {
+        id: usuario.id,
+        rol: usuario.rol,
+      },
       process.env.JWT_SECRET,
-      { expiresIn: "2h" },
+      {
+        expiresIn: "2h",
+      }
     );
 
-    // Eliminamos la contraseña del objeto usuario antes de enviarlo por seguridad
+    // No enviar contraseña al frontend
+
     delete usuario.password;
 
-    // Respuesta exitosa HTTP 200 con el token y los datos del usuario
     return res.status(200).json({
       message: "Inicio de sesión exitoso",
       token,
       user: usuario,
     });
   } catch (error) {
-    console.error("Error en el login ", error);
-    return res
-      .status(500)
-      .json({ message: "Error interno del servidor al iniciar sesión." });
+    console.error("Error en el login:", error);
+
+    return res.status(500).json({
+      message: "Error interno del servidor al iniciar sesión.",
+    });
   }
 };
+
+/* ============================================================================
+   CRUD DE CLIENTES
+   ============================================================================ */
+
+/**
+ * OBTENER TODOS LOS CLIENTES
+ *
+ * Obtiene únicamente los usuarios cuyo rol sea CLIENTE.
+ */
+
+export const obtenerClientes = async (req, res) => {
+  try {
+    const [clientes] = await pool.query(
+      `SELECT
+        id,
+        nombre,
+        apellido,
+        email,
+        telefono,
+        dni,
+        fechaNacimiento,
+        genero,
+        direccion,
+        ciudad,
+        provincia,
+        observaciones,
+        foto,
+        rol
+      FROM usuarios
+      WHERE rol = 'CLIENTE'
+      ORDER BY id DESC`
+    );
+
+    return res.status(200).json(clientes);
+  } catch (error) {
+    console.error("Error al obtener los clientes:", error);
+
+    return res.status(500).json({
+      message: "Error interno del servidor al obtener clientes.",
+    });
+  }
+};
+
+/**
+ * OBTENER UN CLIENTE POR ID
+ *
+ * Busca un usuario específico, pero solamente si tiene rol CLIENTE.
+ */
+
+export const obtenerClientePorId = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [clientes] = await pool.query(
+      `SELECT
+        id,
+        nombre,
+        apellido,
+        email,
+        telefono,
+        dni,
+        fechaNacimiento,
+        genero,
+        direccion,
+        ciudad,
+        provincia,
+        observaciones,
+        foto,
+        rol
+      FROM usuarios
+      WHERE id = ? AND rol = 'CLIENTE'`,
+      [id]
+    );
+
+    if (clientes.length === 0) {
+      return res.status(404).json({
+        message: "Cliente no encontrado.",
+      });
+    }
+
+    return res.status(200).json(clientes[0]);
+  } catch (error) {
+    console.error("Error al obtener el cliente:", error);
+
+    return res.status(500).json({
+      message: "Error interno del servidor al obtener el cliente.",
+    });
+  }
+};
+
+//crear cliente:
+
+export const crearCliente = async (req, res) => {
+  const {
+    nombre,
+    apellido,
+    email,
+    telefono,
+    dni,
+    fechaNacimiento,
+    genero,
+    direccion,
+    ciudad,
+    provincia,
+    observaciones,
+    foto,
+  } = req.body;
+
+  // 1. VALIDACIONES
+
+  if (!nombre || !nombre.trim()) {
+    return res.status(400).json({
+      message: "El nombre es obligatorio.",
+    });
+  }
+
+  if (!apellido || !apellido.trim()) {
+    return res.status(400).json({
+      message: "El apellido es obligatorio.",
+    });
+  }
+
+  if (!email || !email.trim()) {
+    return res.status(400).json({
+      message: "El email es obligatorio.",
+    });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      message: "El formato de email no es válido.",
+    });
+  }
+
+  try {
+    // 2. COMPROBAR EMAIL DUPLICADO
+
+    const [existingUser] = await pool.query(
+      "SELECT id FROM usuarios WHERE email = ?",
+      [email.trim()]
+    );
+
+    if (existingUser.length > 0) {
+      return res.status(400).json({
+        message: "El email ya está registrado.",
+      });
+    }
+
+    // 3. GENERAR CONTRASEÑA INTERNA
+
+    const passwordInterna = `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 10)}`;
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(passwordInterna, salt);
+
+    // 4. INSERTAR CLIENTE
+
+    const sql = `
+      INSERT INTO usuarios
+      (
+        nombre,
+        apellido,
+        email,
+        telefono,
+        password,
+        dni,
+        fechaNacimiento,
+        genero,
+        direccion,
+        ciudad,
+        provincia,
+        observaciones,
+        rol,
+        foto
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CLIENTE', ?)
+    `;
+
+    const values = [
+      nombre.trim(),
+      apellido.trim(),
+      email.trim(),
+      telefono || null,
+      hashedPassword,
+      dni || null,
+      fechaNacimiento || null,
+      genero || null,
+      direccion || null,
+      ciudad || null,
+      provincia || null,
+      observaciones || null,
+      foto || null,
+    ];
+
+    const [resultado] = await pool.query(sql, values);
+
+    return res.status(201).json({
+      message: "Cliente creado exitosamente.",
+      id: resultado.insertId,
+    });
+
+  } catch (error) {
+    console.error("Error al crear el cliente:", error);
+
+    return res.status(500).json({
+      message: "Error interno del servidor al crear el cliente.",
+    });
+  }
+};
+ /* EDITAR CLIENTE
+ *
+ * Modifica los datos de un cliente.
+ * El rol no se modifica.
+ */
+
+export const editarCliente = async (req, res) => {
+  const { id } = req.params;
+
+  const {
+    nombre,
+    apellido,
+    email,
+    telefono,
+    dni,
+    fechaNacimiento,
+    genero,
+    direccion,
+    ciudad,
+    provincia,
+    observaciones,
+    foto,
+  } = req.body;
+
+  // 1. VALIDACIONES
+
+  if (!nombre || !nombre.trim()) {
+    return res.status(400).json({
+      message: "El nombre es obligatorio.",
+    });
+  }
+
+  if (!apellido || !apellido.trim()) {
+    return res.status(400).json({
+      message: "El apellido es obligatorio.",
+    });
+  }
+
+  if (!email || !email.trim()) {
+    return res.status(400).json({
+      message: "El email es obligatorio.",
+    });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      message: "El formato de email no es válido.",
+    });
+  }
+
+  try {
+    // 2. COMPROBAR QUE EL CLIENTE EXISTE
+
+    const [cliente] = await pool.query(
+      "SELECT id FROM usuarios WHERE id = ? AND rol = 'CLIENTE'",
+      [id]
+    );
+
+    if (cliente.length === 0) {
+      return res.status(404).json({
+        message: "Cliente no encontrado.",
+      });
+    }
+
+    // 3. COMPROBAR EMAIL DUPLICADO
+
+    const [emailExistente] = await pool.query(
+      "SELECT id FROM usuarios WHERE email = ? AND id != ?",
+      [email, id]
+    );
+
+    if (emailExistente.length > 0) {
+      return res.status(400).json({
+        message: "El email ya está registrado por otro usuario.",
+      });
+    }
+
+    // 4. ACTUALIZAR CLIENTE
+
+    const sql = `
+      UPDATE usuarios
+      SET
+        nombre = ?,
+        apellido = ?,
+        email = ?,
+        telefono = ?,
+        dni = ?,
+        fechaNacimiento = ?,
+        genero = ?,
+        direccion = ?,
+        ciudad = ?,
+        provincia = ?,
+        observaciones = ?,
+        foto = ?
+      WHERE id = ? AND rol = 'CLIENTE'
+    `;
+
+    const values = [
+      nombre.trim(),
+      apellido.trim(),
+      email.trim(),
+      telefono || null,
+      dni || null,
+      fechaNacimiento || null,
+      genero || null,
+      direccion || null,
+      ciudad || null,
+      provincia || null,
+      observaciones || null,
+      foto || null,
+      id,
+    ];
+
+    await pool.query(sql, values);
+
+    return res.status(200).json({
+      message: "Cliente actualizado exitosamente.",
+    });
+  } catch (error) {
+    console.error("Error al editar el cliente:", error);
+
+    return res.status(500).json({
+      message: "Error interno del servidor al editar el cliente.",
+    });
+  }
+};
+
+/**
+ * ELIMINAR CLIENTE
+ *
+ * Elimina únicamente usuarios cuyo rol sea CLIENTE.
+ */
+
+export const eliminarCliente = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // 1. COMPROBAR QUE SEA CLIENTE
+
+    const [cliente] = await pool.query(
+      "SELECT id FROM usuarios WHERE id = ? AND rol = 'CLIENTE'",
+      [id]
+    );
+
+    if (cliente.length === 0) {
+      return res.status(404).json({
+        message: "Cliente no encontrado.",
+      });
+    }
+
+    // 2. ELIMINAR
+
+    await pool.query(
+      "DELETE FROM usuarios WHERE id = ? AND rol = 'CLIENTE'",
+      [id]
+    );
+
+    return res.status(200).json({
+      message: "Cliente eliminado exitosamente.",
+    });
+  } catch (error) {
+    console.error("Error al eliminar el cliente:", error);
+
+    return res.status(500).json({
+      message: "Error interno del servidor al eliminar el cliente.",
+    });
+  }
+};
+

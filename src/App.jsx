@@ -5,6 +5,8 @@ import RutaProtegida from "./componentes/autenticacion/RutaProtegida";
 import AdminLayout from "./componentes/admin/AdminLayout";
 import PanelControl from "./componentes/admin/PanelControl";
 
+import Clientes from "./componentes/admin/Clientes";
+
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider"; // <-- Importa el proveedor
 
@@ -26,7 +28,7 @@ function App() {
             
             {/* Subrutas secundarias (dummy por ahora para que no den error al hacer clic en el Sidebar) */}
             <Route path="inmuebles" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Gestión de Inmuebles</div>} />
-            <Route path="clientes" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Gestión de Clientes</div>} />
+            <Route path="clientes" element={<Clientes />} />
             <Route path="recibos" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Facturación y Recibos</div>} />
             <Route path="movimientos" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Movimientos Bancarios</div>} />
             <Route path="reportes" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Reportes y Estadísticas Avanzadas</div>} />

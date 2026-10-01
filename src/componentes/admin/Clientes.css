@@ -1,0 +1,153 @@
+/* Botón Nuevo cliente */
+.btn-nuevo-cliente {
+  background-color: #826229;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-nuevo-cliente:hover {
+  background-color: #6d511f;
+}
+
+/* Formulario de cliente */
+.formulario-cliente {
+    color:black;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 25px;
+  margin-top: 20px;
+  margin-bottom: 25px;
+  max-width: 600px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Campos del formulario */
+.campo-cliente {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.campo-cliente label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.campo-cliente input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.campo-cliente input:focus {
+  border-color: #826229;
+  box-shadow: 0 0 0 2px rgba(130, 98, 41, 0.12);
+}
+
+/* Botones del formulario */
+.btn-guardar-cliente,
+.btn-cancelar-cliente {
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+/* Guardar */
+.btn-guardar-cliente {
+  background-color: #826229;
+  color: white;
+  border: 1px solid #826229;
+  margin-right: 10px;
+}
+
+.btn-guardar-cliente:hover {
+  background-color: #6d511f;
+}
+
+/* Cancelar */
+.btn-cancelar-cliente {
+  background-color: #f2f2f2;
+  color: #555;
+  border: 1px solid #ccc;
+}
+
+.btn-cancelar-cliente:hover {
+  background-color: #e2e2e2;
+}
+
+/* Tarjeta de cada cliente */
+.tarjeta-cliente {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #826229;
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 15px;
+  max-width: 600px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.tarjeta-cliente:hover {
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.10);
+}
+
+.tarjeta-cliente p {
+  margin: 6px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+.tarjeta-cliente strong {
+  color: #333;
+  font-size: 17px;
+}
+
+/* Botones de acciones de cada cliente */
+.tarjeta-cliente button {
+  padding: 7px 14px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  margin-right: 8px;
+}
+
+/* Botón Editar */
+.tarjeta-cliente button:first-of-type {
+  background-color: #826229;
+  color: white;
+  border: 1px solid #826229;
+}
+
+.tarjeta-cliente button:first-of-type:hover {
+  background-color: #6d511f;
+}
+
+/* Botón Eliminar */
+.tarjeta-cliente button:last-of-type {
+  background-color: #f2f2f2;
+  color: #555;
+  border: 1px solid #ccc;
+}
+
+.tarjeta-cliente button:last-of-type:hover {
+  background-color: #e2e2e2;
+}
