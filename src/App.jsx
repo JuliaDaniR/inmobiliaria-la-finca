@@ -4,6 +4,10 @@ import Registro from "./componentes/autenticacion/Registro";
 import RutaProtegida from "./componentes/autenticacion/RutaProtegida";
 import AdminLayout from "./componentes/admin/AdminLayout";
 import PanelControl from "./componentes/admin/PanelControl";
+import Recibos from "./componentes/admin/Recibos";
+import Movimientos from "./componentes/admin/Movimientos";
+import Reportes from "./componentes/admin/Reportes";
+import Configuracion from "./componentes/admin/Configuracion";
 
 import Clientes from "./componentes/admin/Clientes";
 
@@ -29,10 +33,10 @@ function App() {
             {/* Subrutas secundarias (dummy por ahora para que no den error al hacer clic en el Sidebar) */}
             <Route path="inmuebles" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Gestión de Inmuebles</div>} />
             <Route path="clientes" element={<Clientes />} />
-            <Route path="recibos" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Facturación y Recibos</div>} />
-            <Route path="movimientos" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Movimientos Bancarios</div>} />
-            <Route path="reportes" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Reportes y Estadísticas Avanzadas</div>} />
-            <Route path="configuracion" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Configuración del Sistema</div>} />
+            <Route path="recibos" element={<Recibos />} />
+            <Route path="movimientos" element={<Movimientos />} />
+            <Route path="reportes" element={<Reportes />} />
+            <Route path="configuracion" element={<Configuracion />} />
             
           </Route>
         </Route>

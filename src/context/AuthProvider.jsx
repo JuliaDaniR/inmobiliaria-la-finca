@@ -12,7 +12,9 @@ export function AuthProvider({ children }) {
   // Inicializamos el estado 'user' leyendo sincrónicamente del localStorage
   // Si el usuario ya había iniciado sesión previamente, recuperamos sus datos
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("la_finca_user");
+    const savedUser =
+      localStorage.getItem("la_finca_user") ||
+      localStorage.getItem("datosUsuario");
     return savedUser ? JSON.parse(savedUser) : null;
   });
 
@@ -26,11 +28,16 @@ export function AuthProvider({ children }) {
     // Guardamos el usuario en el estado global de React
     setUser(data.user);
     
-    // Persistimos el Token y los datos del usuario en el almacenamiento local del navegador
-    localStorage.setItem("la_finca_token", data.token);
-    localStorage.setItem("la_finca_user", JSON.stringify(data.user));
+    // Persistimos el Token y los datos del usuario (tanto llaves locales como convención de el-dogo)
+    const token = data.token || data.tokenAcceso;
+    const usuario = data.user || data.usuario;
+
+    localStorage.setItem("la_finca_token", token);
+    localStorage.setItem("la_finca_user", JSON.stringify(usuario));
+    localStorage.setItem("tokenAcceso", token);
+    localStorage.setItem("datosUsuario", JSON.stringify(usuario));
     
-    return data.user;
+    return usuario;
   };
 
   /**
@@ -41,6 +48,8 @@ export function AuthProvider({ children }) {
     setUser(null);
     localStorage.removeItem("la_finca_token");
     localStorage.removeItem("la_finca_user");
+    localStorage.removeItem("tokenAcceso");
+    localStorage.removeItem("datosUsuario");
   };
 
   // AuthContext.Provider envuelve los componentes hijos (children) y les comparte el objeto value

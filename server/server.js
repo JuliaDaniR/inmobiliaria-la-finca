@@ -6,9 +6,13 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 /* global process */
 import usuariosRouter from './src/routes/usuarios.routes.js';
 import inmueblesRouter from './src/routes/inmuebles.routes.js';
+import recibosRouter from './src/routes/recibos.routes.js';
+import movimientosRouter from './src/routes/movimientos.routes.js';
 
 // Carga las variables de entorno definidas en el archivo .env (base de datos, puerto, clave secreta JWT)
 dotenv.config();
@@ -16,17 +20,24 @@ dotenv.config();
 // Inicializamos la aplicación de Express
 const app = express();
 const PORT = process.env.PORT || 4000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// MIDDLEWARES (Funciones intermedias que procesan las peticiones antes de llegar a las rutas)
-// 1. CORS: Permite que el cliente frontend (React en puerto 5173) se comunique con este servidor (puerto 4000)
+// MIDDLEWARES
 app.use(cors());
-// 2. express.json(): Permite que el servidor entienda y lea datos enviados en formato JSON en el cuerpo (body) de las peticiones HTTP
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Servir archivos estáticos subidos (imágenes de clientes, inmuebles, etc.)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // RUTAS PRINCIPALES DE LA API
-// Conectamos los enrutadores específicos a sus prefijos de URL
-app.use('/api/usuarios', usuariosRouter);    // Todo lo relativo a usuarios: /api/usuarios/registro, /api/usuarios/login
-app.use('/api/inmuebles', inmueblesRouter);  // Todo lo relativo a inmuebles: /api/inmuebles
+app.use('/api/usuarios', usuariosRouter);
+app.use('/api/autenticacion', usuariosRouter); // Compatibilidad con el proyecto del profesor (el-dogo)
+app.use('/api/auth', usuariosRouter);
+app.use('/api/inmuebles', inmueblesRouter);
+app.use('/api/recibos', recibosRouter);
+app.use('/api/movimientos', movimientosRouter);
 
 // Ruta de prueba inicial para comprobar que el servidor responde correctamente en la raíz '/'
 app.get('/', (req, res) => {

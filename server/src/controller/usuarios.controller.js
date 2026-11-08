@@ -1,4 +1,5 @@
 
+/* global process */
 // ============================================================================
 // CONTROLADOR DE USUARIOS (usuarios.controller.js)
 // Registro, inicio de sesión y gestión de clientes.
@@ -406,6 +407,11 @@ export const crearCliente = async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'CLIENTE', ?)
     `;
 
+    // Ruta de la foto (archivo subido mediante multer o URL externa)
+    const rutaFoto = req.file
+      ? `/uploads/${req.file.filename}`
+      : (foto || null);
+
     const values = [
       nombre.trim(),
       apellido.trim(),
@@ -419,7 +425,7 @@ export const crearCliente = async (req, res) => {
       ciudad || null,
       provincia || null,
       observaciones || null,
-      foto || null,
+      rutaFoto,
     ];
 
     const [resultado] = await pool.query(sql, values);
@@ -493,7 +499,7 @@ export const editarCliente = async (req, res) => {
     // 2. COMPROBAR QUE EL CLIENTE EXISTE
 
     const [cliente] = await pool.query(
-      "SELECT id FROM usuarios WHERE id = ? AND rol = 'CLIENTE'",
+      "SELECT id, foto FROM usuarios WHERE id = ? AND rol = 'CLIENTE'",
       [id]
     );
 
@@ -514,6 +520,14 @@ export const editarCliente = async (req, res) => {
       return res.status(400).json({
         message: "El email ya está registrado por otro usuario.",
       });
+    }
+
+    // Determinar la foto (nueva subida o existente)
+    let rutaFoto = cliente[0].foto;
+    if (req.file) {
+      rutaFoto = `/uploads/${req.file.filename}`;
+    } else if (foto !== undefined) {
+      rutaFoto = foto || null;
     }
 
     // 4. ACTUALIZAR CLIENTE
@@ -548,7 +562,7 @@ export const editarCliente = async (req, res) => {
       ciudad || null,
       provincia || null,
       observaciones || null,
-      foto || null,
+      rutaFoto,
       id,
     ];
 
