@@ -1,9 +1,9 @@
 // ============================================================================
 // SERVICIO DE CLIENTES (clientes.service.js)
-// Realiza las peticiones al backend para gestionar los clientes.
+// Realiza las peticiones al backend para gestionar los clientes utilizando clienteApi (Axios).
 // ============================================================================
 
-const API_URL = "http://localhost:4000/api/usuarios/clientes";
+import clienteApi from "../api/axios";
 
 // ============================================================================
 // OBTENER LISTA DE CLIENTES
@@ -11,16 +11,8 @@ const API_URL = "http://localhost:4000/api/usuarios/clientes";
 
 export const getClientes = async () => {
   try {
-    const response = await fetch(API_URL, {
-      method: "GET",
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error HTTP! estado: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
+    const response = await clienteApi.get("/usuarios/clientes");
+    return response.data;
   } catch (error) {
     console.error("Error al obtener clientes:", error);
     return [];
@@ -28,56 +20,65 @@ export const getClientes = async () => {
 };
 
 // ============================================================================
-// CREAR CLIENTE
+// OBTENER CLIENTE POR ID
 // ============================================================================
 
-export const crearCliente = async (cliente) => {
+export const getClientePorId = async (id) => {
   try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(cliente),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.mensaje || "Error al crear el cliente");
-    }
-
-    return data;
+    const response = await clienteApi.get(`/usuarios/clientes/${id}`);
+    return response.data;
   } catch (error) {
-    console.error("Error al crear cliente:", error);
-    throw error;
+    console.error("Error al obtener cliente:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.response?.data?.mensaje ||
+        "Error al obtener el cliente",
+      { cause: error }
+    );
   }
 };
 
 // ============================================================================
-// EDITAR CLIENTE
+// CREAR CLIENTE (Soporta JSON o FormData con archivo de imagen)
 // ============================================================================
 
-export const editarCliente = async (id, cliente) => {
+export const crearCliente = async (clienteData) => {
   try {
-    const response = await fetch(`${API_URL}/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(cliente),
-    });
+    const response = await clienteApi.post(
+      "/usuarios/clientes",
+      clienteData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error al crear cliente:", error);
+    throw new Error(
+      error.response?.data?.message ||
+        error.response?.data?.mensaje ||
+        "Error al crear el cliente",
+      { cause: error }
+    );
+  }
+};
 
-    const data = await response.json();
+// ============================================================================
+// EDITAR CLIENTE (Soporta JSON o FormData con archivo de imagen)
+// ============================================================================
 
-    if (!response.ok) {
-      throw new Error(data.mensaje || "Error al editar el cliente");
-    }
-
-    return data;
+export const editarCliente = async (id, clienteData) => {
+  try {
+    const response = await clienteApi.put(
+      `/usuarios/clientes/${id}`,
+      clienteData
+    );
+    return response.data;
   } catch (error) {
     console.error("Error al editar cliente:", error);
-    throw error;
+    throw new Error(
+      error.response?.data?.message ||
+        error.response?.data?.mensaje ||
+        "Error al editar el cliente",
+      { cause: error }
+    );
   }
 };
 
@@ -87,19 +88,15 @@ export const editarCliente = async (id, cliente) => {
 
 export const eliminarCliente = async (id) => {
   try {
-    const response = await fetch(`${API_URL}/${id}`, {
-      method: "DELETE",
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.mensaje || "Error al eliminar el cliente");
-    }
-
-    return data;
+    const response = await clienteApi.delete(`/usuarios/clientes/${id}`);
+    return response.data;
   } catch (error) {
     console.error("Error al eliminar cliente:", error);
-    throw error;
+    throw new Error(
+      error.response?.data?.message ||
+        error.response?.data?.mensaje ||
+        "Error al eliminar el cliente",
+      { cause: error }
+    );
   }
 };

@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthProvider";
 import { useState, useEffect } from "react";
 
 export default function AdminLayout() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   // Estado para el modo oscuro
   const [darkMode, setDarkMode] = useState(() => {
