@@ -1,50 +1,78 @@
-// ============================================================================
-// SERVICIO DE INMUEBLES (inmuebles.service.js)
-// Realiza las peticiones GET para obtener la lista de propiedades y detalles.
-// ============================================================================
 
-const API_URL = "http://localhost:4000/api/inmuebles";
+import clienteApi from "../api/axios";
 
-/**
- * OBTENER LISTA DE INMUEBLES
- * Realiza una petición GET al endpoint /api/inmuebles.
- */
+// ==========================================
+// OBTENER TODOS LOS INMUEBLES
+// ==========================================
 export const getInmuebles = async () => {
   try {
-    const response = await fetch(API_URL, {
-      method: "GET",
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Error HTTP! estado: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
+    const respuesta = await clienteApi.get("/inmuebles");
+    return respuesta.data;
   } catch (error) {
     console.error("Error al obtener inmuebles:", error);
-    return []; // En caso de fallo, devolvemos un arreglo vacío de respaldo
+    return [];
   }
 };
 
-/**
- * OBTENER DETALLE DE UN INMUEBLE POR ID
- * Realiza una petición GET enviando el ID en la URL (/api/inmuebles/:id).
- */
+// ==========================================
+// OBTENER UN INMUEBLE POR ID
+// ==========================================
 export const getInmuebleById = async (id) => {
   try {
-    const response = await fetch(`${API_URL}/${id}`, {
-      method: "GET",
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Error HTTP! estado: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
+    const respuesta = await clienteApi.get(`/inmuebles/${id}`);
+    return respuesta.data;
   } catch (error) {
-    console.error("Error al obtener el inmueble por ID:", error);
+    console.error("Error al obtener el inmueble:", error);
     return null;
+  }
+};
+
+// ==========================================
+// CREAR UN INMUEBLE
+// ==========================================
+export const crearInmueble = async (datosInmueble) => {
+  try {
+    const respuesta = await clienteApi.post(
+      "/inmuebles",
+      datosInmueble
+    );
+
+    return respuesta.data;
+  } catch (error) {
+    console.error("Error al crear el inmueble:", error);
+    throw error;
+  }
+};
+
+// ==========================================
+// EDITAR UN INMUEBLE
+// ==========================================
+export const editarInmueble = async (id, datosInmueble) => {
+  try {
+    const respuesta = await clienteApi.put(
+      `/inmuebles/${id}`,
+      datosInmueble
+    );
+
+    return respuesta.data;
+  } catch (error) {
+    console.error("Error al editar el inmueble:", error);
+    throw error;
+  }
+};
+
+// ==========================================
+// ELIMINAR UN INMUEBLE
+// ==========================================
+export const eliminarInmueble = async (id) => {
+  try {
+    const respuesta = await clienteApi.delete(
+      `/inmuebles/${id}`
+    );
+
+    return respuesta.data;
+  } catch (error) {
+    console.error("Error al eliminar el inmueble:", error);
+    throw error;
   }
 };

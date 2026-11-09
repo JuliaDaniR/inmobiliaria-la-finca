@@ -1,12 +1,28 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthProvider";
 
 function Navbar() {
   const { user, logout } = useAuth();
-  // Estado para controlar el modo oscuro
+
+  // Convierte las rutas relativas de imágenes en URL del backend.
+  const obtenerUrlFotoPerfil = (foto) => {
+    if (!foto) return null;
+
+    // Las imágenes Base64 y las URL completas se utilizan directamente.
+    if (foto.startsWith("data:image") || foto.startsWith("http")) {
+      return foto;
+    }
+
+    // Las imágenes guardadas en /uploads se sirven desde el backend.
+    return `http://localhost:4000/${foto.replace(/^\/+/, "")}`;
+  };
+
+  const fotoPerfil = obtenerUrlFotoPerfil(user?.foto || user?.avatar);
+
+  // Estado para controlar el modo oscuro.
   const [darkMode, setDarkMode] = useState(() => {
-    // Al cargar la página, comprueba si el usuario ya tenía una preferencia guardada
     if (typeof window !== "undefined") {
       return (
         localStorage.getItem("theme") === "dark" ||
@@ -14,9 +30,11 @@ function Navbar() {
           window.matchMedia("(prefers-color-scheme: dark)").matches)
       );
     }
+
     return false;
   });
-  // Efecto para añadir/quitar la clase 'dark' al tag <html> y guardar la preferencia
+
+  // Añade o quita la clase dark y guarda la preferencia.
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -31,6 +49,7 @@ function Navbar() {
     <nav className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-brand-bg/80 backdrop-blur-md transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-30">
+
           {/* Logo / Nombre de marca */}
           <Link
             to="/"
@@ -49,7 +68,7 @@ function Navbar() {
             />
           </Link>
 
-          {/* Enlaces de Navegación (Centrados) */}
+          {/* Enlaces de navegación */}
           <div className="hidden md:flex items-center gap-8">
             <a
               href="#inicio"
@@ -58,6 +77,7 @@ function Navbar() {
               Inicio
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-gold scale-x-100 transition-transform duration-300"></span>
             </a>
+
             <a
               href="#propiedades"
               className="relative text-sm font-semibold text-brand-muted hover:text-brand-gold transition-colors py-2 group"
@@ -65,6 +85,7 @@ function Navbar() {
               Propiedades
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-gold scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
             </a>
+
             <a
               href="#nosotros"
               className="relative text-sm font-semibold text-brand-muted hover:text-brand-gold transition-colors py-2 group"
@@ -72,6 +93,7 @@ function Navbar() {
               Nosotros
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-gold scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
             </a>
+
             <a
               href="#contacto"
               className="relative text-sm font-semibold text-brand-muted hover:text-brand-gold transition-colors py-2 group"
@@ -81,16 +103,16 @@ function Navbar() {
             </a>
           </div>
 
-          {/* Botones de Acción e Interruptor de Modo Oscuro (Derecha) */}
+          {/* Botones de acción y modo oscuro */}
           <div className="flex items-center gap-4">
-            {/* Botón de Modo Oscuro */}
+
+            {/* Botón de modo oscuro */}
             <button
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 rounded-lg text-brand-muted hover:text-brand-gold dark:text-gray-400 dark:hover:text-brand-gold hover:bg-gray-100/50 dark:hover:bg-slate-900/50 transition-all duration-300 cursor-pointer"
               aria-label="Cambiar modo de color"
             >
               {darkMode ? (
-                // Icono de Sol Minimalista y Moderno (Lucide style)
                 <svg
                   className="w-4.5 h-4.5 animate-pulse"
                   viewBox="0 0 24 24"
@@ -101,10 +123,9 @@ function Navbar() {
                   strokeLinejoin="round"
                 >
                   <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41-1.41" />
                 </svg>
               ) : (
-                // Icono de Luna Minimalista y Moderno (Lucide style)
                 <svg
                   className="w-4.5 h-4.5"
                   viewBox="0 0 24 24"
@@ -119,18 +140,26 @@ function Navbar() {
               )}
             </button>
 
+            {/* Usuario autenticado */}
             {user ? (
               <div className="flex items-center gap-3">
-                {user?.foto || user?.avatar ? (
+
+                {/* Foto de perfil */}
+                {fotoPerfil && (
                   <img
-                    src={user.foto || user.avatar}
-                    alt="Avatar"
+                    src={fotoPerfil}
+                    alt="Foto de perfil"
                     className="w-8 h-8 rounded-full object-cover border border-[#826229]/40 shadow-sm"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
                   />
-                ) : null}
+                )}
+
                 <span className="text-xs font-semibold text-brand-text">
                   Hola, {user.nombre}
                 </span>
+
                 {user.rol === "SECRETARIO" && (
                   <Link
                     to="/admin"
@@ -139,6 +168,7 @@ function Navbar() {
                     Panel Admin
                   </Link>
                 )}
+
                 <button
                   onClick={logout}
                   className="px-3 py-1.5 text-xs font-semibold text-brand-muted hover:text-red-600 dark:hover:text-red-400 border border-gray-200 dark:border-gray-800 rounded-lg transition-all cursor-pointer bg-transparent"
@@ -171,3 +201,4 @@ function Navbar() {
 }
 
 export default Navbar;
+
