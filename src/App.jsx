@@ -14,6 +14,8 @@ import Clientes from "./componentes/admin/Clientes";
 import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider"; // <-- Importa el proveedor
 
+import Inmuebles from "./componentes/admin/Inmuebles";
+
 function App() {
   return (
     <AuthProvider> {/* <-- Envuelve todo en el AuthProvider */}
@@ -31,7 +33,7 @@ function App() {
             <Route index element={<PanelControl />} />
             
             {/* Subrutas secundarias (dummy por ahora para que no den error al hacer clic en el Sidebar) */}
-            <Route path="inmuebles" element={<div className="p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 font-bold">Módulo de Gestión de Inmuebles</div>} />
+            <Route path="inmuebles" element={<Inmuebles />} />
             <Route path="clientes" element={<Clientes />} />
             <Route path="recibos" element={<Recibos />} />
             <Route path="movimientos" element={<Movimientos />} />
