@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "seed": "npm --prefix server run seed",
     "dev:all": "concurrently \"npm run dev\" \"npm --prefix server run dev\""
   },
   "dependencies": {
