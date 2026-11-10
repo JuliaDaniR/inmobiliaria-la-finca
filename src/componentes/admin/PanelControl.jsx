@@ -1,4 +1,4 @@
-
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getInmuebles } from "../../services/inmuebles.service";
 
@@ -21,6 +21,7 @@ const obtenerUrlFoto = (foto) => {
 export default function PanelControl() {
   const [inmuebles, setInmuebles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const cargarInmuebles = async () => {
@@ -58,7 +59,9 @@ export default function PanelControl() {
           </p>
         </div>
 
-        <button className="bg-[#826229] hover:bg-[#6c5120] text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer">
+        <button className="bg-[#826229] hover:bg-[#6c5120] text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer"
+          onClick={() => navigate("/admin/reportes")}
+        >
           <svg
             className="w-4 h-4"
             fill="none"
@@ -261,7 +264,8 @@ export default function PanelControl() {
             <div className="space-y-4">
 
               {/* Agregar Inmueble */}
-              <button className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-[#826229] dark:hover:border-[#C69B56] transition-all group cursor-pointer">
+              <button className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-[#826229] dark:hover:border-[#C69B56] transition-all group cursor-pointer"
+              onClick={() => navigate("/admin/inmuebles")}>
                 <div className="flex items-center gap-3.5">
                   <div className="p-2 bg-[#826229]/10 rounded-lg text-[#826229] dark:text-brand-gold">
                     <svg
@@ -300,7 +304,8 @@ export default function PanelControl() {
               </button>
 
               {/* Generar Recibo */}
-              <button className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-[#826229] dark:hover:border-[#C69B56] transition-all group cursor-pointer">
+              <button className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-[#826229] dark:hover:border-[#C69B56] transition-all group cursor-pointer"
+              onClick={() => navigate("/admin/recibos")}>
                 <div className="flex items-center gap-3.5">
                   <div className="p-2 bg-[#826229]/10 rounded-lg text-[#826229] dark:text-brand-gold">
                     <svg
@@ -339,7 +344,9 @@ export default function PanelControl() {
               </button>
 
               {/* Registrar Movimiento */}
-              <button className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-[#826229] dark:hover:border-[#C69B56] transition-all group cursor-pointer">
+              <button className="w-full flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 hover:border-[#826229] dark:hover:border-[#C69B56] transition-all group cursor-pointer"
+                onClick={() => navigate("/admin/movimientos")}
+              >
                 <div className="flex items-center gap-3.5">
                   <div className="p-2 bg-[#826229]/10 rounded-lg text-[#826229] dark:text-brand-gold">
                     <svg

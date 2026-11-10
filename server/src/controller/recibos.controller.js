@@ -25,6 +25,15 @@ export const obtenerRecibos = async (req, res) => {
     `;
     const params = [];
 
+    // Si quien consulta es un CLIENTE, solo ve sus propios recibos
+    if (req.usuarioAutenticado?.rol === "CLIENTE") {
+      sql += " AND r.id_cliente = ?";
+      params.push(req.usuarioAutenticado.id);
+    } else if (req.query.id_cliente) {
+      sql += " AND r.id_cliente = ?";
+      params.push(req.query.id_cliente);
+    }
+
     if (estado) {
       sql += " AND r.estado = ?";
       params.push(estado);
@@ -328,7 +337,7 @@ export const editarRecibo = async (req, res) => {
 // ============================================================================
 export const cambiarEstadoPago = async (req, res) => {
   const { id } = req.params;
-  const { estado } = req.body; // 'COBRADO' o 'PENDIENTE'
+  const { estado, id_cuenta } = req.body; // 'COBRADO' o 'PENDIENTE'
 
   if (!["PENDIENTE", "COBRADO"].includes(estado)) {
     return res.status(400).json({
@@ -336,13 +345,66 @@ export const cambiarEstadoPago = async (req, res) => {
     });
   }
 
+  // Si quien realiza la petición es un CLIENTE, verificar que el recibo sea suyo
+  if (req.usuarioAutenticado?.rol === "CLIENTE") {
+    const [verif] = await pool.query(
+      "SELECT id_cliente FROM recibos WHERE id = ?",
+      [id]
+    );
+    if (!verif.length || verif[0].id_cliente !== req.usuarioAutenticado.id) {
+      return res.status(403).json({
+        message: "No tienes permiso para abonar este recibo.",
+      });
+    }
+  }
+
   const fechaCobro = estado === "COBRADO" ? new Date().toISOString().split("T")[0] : null;
 
+  const connection = await pool.getConnection();
   try {
-    await pool.query(
+    await connection.beginTransaction();
+
+    await connection.query(
       "UPDATE recibos SET estado = ?, fecha_cobro = ? WHERE id = ?",
       [estado, fechaCobro, id]
     );
+
+    // Si se abona el recibo, registrar automáticamente el movimiento bancario de INGRESO
+    if (estado === "COBRADO") {
+      const [rec] = await connection.query(
+        `SELECT r.total, r.numero_recibo, r.id_inmueble, u.nombre, u.apellido 
+         FROM recibos r 
+         LEFT JOIN usuarios u ON r.id_cliente = u.id 
+         WHERE r.id = ?`,
+        [id]
+      );
+
+      if (rec.length > 0) {
+        const cuentaDestino = id_cuenta || 1; // Santander por defecto
+        const clienteNom = rec[0].nombre ? `${rec[0].nombre} ${rec[0].apellido}` : "Inquilino";
+
+        await connection.query(
+          `INSERT INTO movimientos_bancarios (id_cuenta, id_inmueble, id_recibo, tipo, categoria, monto, fecha, descripcion)
+           VALUES (?, ?, ?, 'INGRESO', 'Cobro de Alquiler', ?, ?, ?)`,
+          [
+            cuentaDestino,
+            rec[0].id_inmueble,
+            id,
+            rec[0].total,
+            fechaCobro,
+            `Cobro online recibo ${rec[0].numero_recibo} (${clienteNom})`,
+          ]
+        );
+
+        // Actualizar saldo de la cuenta bancaria seleccionada
+        await connection.query(
+          "UPDATE cuentas_bancarias SET saldo = saldo + ? WHERE id = ?",
+          [rec[0].total, cuentaDestino]
+        );
+      }
+    }
+
+    await connection.commit();
 
     return res.status(200).json({
       message: `El recibo se marcó como ${estado}.`,
@@ -350,10 +412,13 @@ export const cambiarEstadoPago = async (req, res) => {
       fecha_cobro: fechaCobro,
     });
   } catch (error) {
+    await connection.rollback();
     console.error("Error al cambiar estado:", error);
     return res.status(500).json({
       message: "Error al actualizar el estado de pago del recibo.",
     });
+  } finally {
+    connection.release();
   }
 };
 

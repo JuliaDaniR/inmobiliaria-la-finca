@@ -4,6 +4,8 @@ import { Router } from "express";
 import {
   obtenerInmuebles,
   obtenerInmueblePorId,
+  solicitarOperacionInmueble,
+  resolverOperacionInmueble,
   crearInmueble,
   editarInmueble,
   eliminarInmueble,
@@ -17,6 +19,20 @@ const router = Router();
 // CONSULTAS: se mantienen las rutas GET existentes.
 router.get("/", obtenerInmuebles);
 router.get("/:id", obtenerInmueblePorId);
+
+// SOLICITUD DE OPERACIÓN (ALQUILAR / COMPRAR - CLIENTE)
+router.post(
+  "/:id/reservar",
+  verificarTokenAcceso,
+  solicitarOperacionInmueble
+);
+
+// RESOLVER OPERACIÓN (CONFIRMAR VENTA / ALQUILER / RECHAZAR - ADMIN)
+router.patch(
+  "/:id/resolver-operacion",
+  verificarTokenAcceso,
+  resolverOperacionInmueble
+);
 
 // GESTIÓN DE INMUEBLES: operaciones protegidas con JWT.
 router.post(
