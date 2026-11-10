@@ -169,6 +169,15 @@ function Navbar() {
                   </Link>
                 )}
 
+                {user.rol === "CLIENTE" && (
+                  <Link
+                    to="/portal"
+                    className="px-3 py-1.5 text-xs font-semibold text-white bg-brand-blue dark:bg-brand-gold hover:bg-[#023366] dark:hover:bg-[#b08443] rounded-lg transition-all cursor-pointer shadow-sm"
+                  >
+                    Mi Portal
+                  </Link>
+                )}
+
                 <button
                   onClick={logout}
                   className="px-3 py-1.5 text-xs font-semibold text-brand-muted hover:text-red-600 dark:hover:text-red-400 border border-gray-200 dark:border-gray-800 rounded-lg transition-all cursor-pointer bg-transparent"

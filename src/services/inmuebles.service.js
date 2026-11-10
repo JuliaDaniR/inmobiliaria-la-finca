@@ -76,3 +76,37 @@ export const eliminarInmueble = async (id) => {
     throw error;
   }
 };
+
+// ==========================================
+// SOLICITAR OPERACIÓN (ALQUILAR / COMPRAR)
+// ==========================================
+export const solicitarOperacionInmueble = async (id, datosOperacion) => {
+  try {
+    const respuesta = await clienteApi.post(
+      `/inmuebles/${id}/reservar`,
+      datosOperacion
+    );
+
+    return respuesta.data;
+  } catch (error) {
+    console.error("Error al solicitar operación del inmueble:", error);
+    throw error;
+  }
+};
+
+// ==========================================
+// RESOLVER OPERACIÓN (CONFIRMAR VENTA / ALQUILER / RECHAZAR - ADMIN)
+// ==========================================
+export const resolverOperacionInmueble = async (id, datosResolucion) => {
+  try {
+    const respuesta = await clienteApi.patch(
+      `/inmuebles/${id}/resolver-operacion`,
+      datosResolucion
+    );
+
+    return respuesta.data;
+  } catch (error) {
+    console.error("Error al resolver operación del inmueble:", error);
+    throw error;
+  }
+};

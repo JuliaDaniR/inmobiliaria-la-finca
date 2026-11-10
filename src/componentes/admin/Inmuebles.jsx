@@ -6,6 +6,7 @@ import {
   crearInmueble,
   editarInmueble,
   eliminarInmueble,
+  resolverOperacionInmueble,
 } from "../../services/inmuebles.service";
 
 const API_BASE = "http://localhost:4000";
@@ -35,6 +36,7 @@ function Inmuebles() {
   const [inmuebles, setInmuebles] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("TODOS");
 
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [inmuebleEditando, setInmuebleEditando] = useState(null);
@@ -45,13 +47,12 @@ function Inmuebles() {
 
   const [guardando, setGuardando] = useState(false);
   const [mensajeAlerta, setMensajeAlerta] = useState("");
+  const [dialogoConfirmacion, setDialogoConfirmacion] = useState(null);
 
   // ==========================================
   // CARGAR INMUEBLES
   // ==========================================
   const cargarInmuebles = async () => {
-    setCargando(true);
-
     try {
       const datos = await getInmuebles();
 
@@ -70,31 +71,110 @@ function Inmuebles() {
   };
 
   useEffect(() => {
-    cargarInmuebles();
+    let activo = true;
+
+    getInmuebles()
+      .then((datos) => {
+        if (!activo) return;
+        const lista = Array.isArray(datos)
+          ? datos
+          : datos?.inmuebles || datos?.data || [];
+        setInmuebles(lista);
+      })
+      .catch((error) => {
+        if (!activo) return;
+        console.error("Error al cargar inmuebles:", error);
+        setInmuebles([]);
+        setMensajeAlerta("No se pudieron cargar los inmuebles.");
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
+
+    return () => {
+      activo = false;
+    };
   }, []);
 
   // ==========================================
-  // BUSCADOR
+  // RESOLVER OPERACIÓN (CONFIRMAR ALQUILER / VENTA / RECHAZAR)
+  // ==========================================
+  const pedirConfirmacionOperacion = (inmueble, accion) => {
+    const esVenta = accion === "CONFIRMAR_VENTA";
+    const esAlquiler = accion === "CONFIRMAR_ALQUILER";
+
+    setDialogoConfirmacion({
+      titulo: esVenta
+        ? "¿Confirmar Venta del Inmueble?"
+        : esAlquiler
+        ? "¿Confirmar Alquiler del Inmueble?"
+        : "¿Rechazar Solicitud de Reserva?",
+      mensaje: esVenta
+        ? `La propiedad en "${inmueble.direccion}" pasará a estado VENDIDO y se acreditará la comisión del 3% ($${Math.round(
+            Number(inmueble.precio) * 0.03
+          ).toLocaleString("es-AR")} USD) en la cuenta bancaria de La Finca.`
+        : esAlquiler
+        ? `La propiedad en "${inmueble.direccion}" pasará a estado ALQUILADO y se emitirá automáticamente el recibo de locación mensual para el inquilino.`
+        : `La reserva quedará cancelada y "${inmueble.direccion}" volverá a estar DISPONIBLE en el catálogo.`,
+      textoBoton: esVenta
+        ? "Confirmar Venta"
+        : esAlquiler
+        ? "Confirmar Alquiler"
+        : "Rechazar Reserva",
+      colorBoton:
+        esVenta || esAlquiler
+          ? "bg-emerald-600 hover:bg-emerald-700"
+          : "bg-red-600 hover:bg-red-700",
+      onConfirmar: async () => {
+        try {
+          const resp = await resolverOperacionInmueble(inmueble.id, { accion });
+          setMensajeAlerta({
+            tipo: "exito",
+            texto: resp.message || "Operación procesada con éxito.",
+          });
+          await cargarInmuebles();
+        } catch (error) {
+          console.error("Error al resolver operación:", error);
+          setMensajeAlerta({
+            tipo: "error",
+            texto:
+              error.response?.data?.message || "Error al procesar la operación.",
+          });
+        } finally {
+          setDialogoConfirmacion(null);
+        }
+      },
+    });
+  };
+
+  // ==========================================
+  // BUSCADOR Y FILTROS
   // ==========================================
   const inmueblesFiltrados = useMemo(() => {
+    let lista = inmuebles;
+    if (filtroEstado !== "TODOS") {
+      lista = lista.filter((i) => i.estado === filtroEstado);
+    }
+
     const termino = busqueda.toLowerCase().trim();
+    if (!termino) return lista;
 
-    if (!termino) return inmuebles;
-
-    return inmuebles.filter((inmueble) =>
+    return lista.filter((inmueble) =>
       [
         inmueble.tipo_inmueble,
         inmueble.direccion,
         inmueble.localidad,
         inmueble.provincia,
         inmueble.estado,
+        inmueble.cliente_nombre,
+        inmueble.cliente_apellido,
       ]
         .filter(Boolean)
         .some((valor) =>
           String(valor).toLowerCase().includes(termino)
         )
     );
-  }, [inmuebles, busqueda]);
+  }, [inmuebles, busqueda, filtroEstado]);
 
   // ==========================================
   // MANEJAR CAMBIOS DEL FORMULARIO
@@ -247,25 +327,33 @@ function Inmuebles() {
   // ==========================================
   // ELIMINAR INMUEBLE
   // ==========================================
-  const manejarEliminar = async (id) => {
-    const confirmar = window.confirm(
-      "¿Estás seguro de que querés eliminar este inmueble?"
-    );
-
-    if (!confirmar) return;
-
-    try {
-      await eliminarInmueble(id);
-      setMensajeAlerta("Inmueble eliminado correctamente.");
-      await cargarInmuebles();
-    } catch (error) {
-      console.error("Error al eliminar inmueble:", error);
-
-      setMensajeAlerta(
-        error.response?.data?.mensaje ||
-        "No se pudo eliminar el inmueble."
-      );
-    }
+  const pedirConfirmacionEliminar = (inmueble) => {
+    setDialogoConfirmacion({
+      titulo: "¿Eliminar Inmueble?",
+      mensaje: `¿Estás seguro de que deseas eliminar permanentemente el inmueble en "${inmueble.direccion}"? Esta acción no se puede deshacer.`,
+      textoBoton: "Eliminar Definitivamente",
+      colorBoton: "bg-red-600 hover:bg-red-700",
+      onConfirmar: async () => {
+        try {
+          await eliminarInmueble(inmueble.id);
+          setMensajeAlerta({
+            tipo: "exito",
+            texto: "Inmueble eliminado correctamente.",
+          });
+          await cargarInmuebles();
+        } catch (error) {
+          console.error("Error al eliminar inmueble:", error);
+          setMensajeAlerta({
+            tipo: "error",
+            texto:
+              error.response?.data?.mensaje ||
+              "No se pudo eliminar el inmueble.",
+          });
+        } finally {
+          setDialogoConfirmacion(null);
+        }
+      },
+    });
   };
 
   // ==========================================
@@ -308,35 +396,102 @@ function Inmuebles() {
 
       </div>
 
-      {/* MENSAJE */}
+      {/* MENSAJE DE ALERTA PERSONALIZADO */}
       {mensajeAlerta && (
-        <div className="p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
-          {mensajeAlerta}
+        <div
+          className={`p-4 rounded-xl border flex items-center justify-between text-sm shadow-sm transition-all ${
+            typeof mensajeAlerta === "object" && mensajeAlerta.tipo === "error"
+              ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
+              : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-lg">
+              {typeof mensajeAlerta === "object" && mensajeAlerta.tipo === "error"
+                ? "⚠️"
+                : "✓"}
+            </span>
+            <span>
+              {typeof mensajeAlerta === "string"
+                ? mensajeAlerta
+                : mensajeAlerta.texto}
+            </span>
+          </div>
 
           <button
             onClick={() => setMensajeAlerta("")}
-            className="float-right font-bold"
+            className="text-xs font-bold hover:underline cursor-pointer ml-4"
           >
-            ×
+            Cerrar
           </button>
         </div>
       )}
 
-      {/* BUSCADOR */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+      {/* BUSCADOR Y FILTROS POR ESTADO */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {[
+            { id: "TODOS", label: "Todos", count: inmuebles.length },
+            {
+              id: "RESERVADO",
+              label: "Reservas / Solicitudes",
+              count: inmuebles.filter((i) => i.estado === "RESERVADO").length,
+              urgente: true,
+            },
+            {
+              id: "DISPONIBLE",
+              label: "Disponibles",
+              count: inmuebles.filter(
+                (i) => i.estado === "DISPONIBLE" || !i.estado
+              ).length,
+            },
+            {
+              id: "ALQUILADO",
+              label: "Alquilados",
+              count: inmuebles.filter((i) => i.estado === "ALQUILADO").length,
+            },
+            {
+              id: "VENDIDO",
+              label: "Vendidos",
+              count: inmuebles.filter((i) => i.estado === "VENDIDO").length,
+            },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFiltroEstado(tab.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                filtroEstado === tab.id
+                  ? "bg-[#826229] text-white shadow-xs"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+              }`}
+            >
+              <span>{tab.label}</span>
+              <span
+                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  tab.urgente && tab.count > 0
+                    ? "bg-red-500 text-white font-extrabold"
+                    : filtroEstado === tab.id
+                    ? "bg-white/20 text-white"
+                    : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
 
         <input
           type="text"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por tipo, dirección, localidad o estado..."
-          className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-amber-700"
+          placeholder="Buscar por tipo, dirección, cliente solicitante, localidad o estado..."
+          className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-[#826229] text-xs"
         />
 
-        <p className="text-sm text-slate-500 mt-3">
-          {inmueblesFiltrados.length} inmueble(s) encontrado(s)
+        <p className="text-xs text-slate-500">
+          Mostrando {inmueblesFiltrados.length} de {inmuebles.length} inmuebles
         </p>
-
       </div>
 
       {/* FORMULARIO */}
@@ -592,7 +747,17 @@ function Inmuebles() {
                     {inmueble.tipo_inmueble}
                   </h3>
 
-                  <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800">
+                  <span
+                    className={`text-xs font-bold px-3 py-1 rounded-full uppercase ${
+                      inmueble.estado === "DISPONIBLE"
+                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                        : inmueble.estado === "RESERVADO"
+                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 ring-2 ring-amber-400/50"
+                        : inmueble.estado === "ALQUILADO"
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+                        : "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300"
+                    }`}
+                  >
                     {inmueble.estado || "DISPONIBLE"}
                   </span>
 
@@ -614,6 +779,75 @@ function Inmuebles() {
                   </p>
                 )}
 
+                {/* BLOQUE DE SOLICITUD / RESERVA ACTIVA (CU-19 / CU-22) */}
+                {inmueble.estado === "RESERVADO" && (
+                  <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80 text-xs text-amber-950 dark:text-amber-200 space-y-2">
+                    <div className="flex items-center justify-between border-b border-amber-200/50 dark:border-amber-800/50 pb-1.5">
+                      <span className="font-bold flex items-center gap-1.5">
+                        <span>🔔</span>
+                        <span>
+                          {inmueble.observaciones?.toUpperCase().includes("COMPRA")
+                            ? "PEDIDO DE COMPRA (CU-22)"
+                            : "PEDIDO DE ALQUILER (CU-19)"}
+                        </span>
+                      </span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900/60 font-bold">
+                        RESERVADO
+                      </span>
+                    </div>
+
+                    <div className="space-y-0.5 text-slate-700 dark:text-slate-300">
+                      <p>
+                        <strong className="text-slate-900 dark:text-white">Cliente Solicitante:</strong>{" "}
+                        {inmueble.cliente_nombre
+                          ? `${inmueble.cliente_nombre} ${inmueble.cliente_apellido}`
+                          : "Cliente registrado"}
+                      </p>
+                      {inmueble.cliente_email && (
+                        <p className="text-[11px] text-slate-500">
+                          <strong>Email:</strong> {inmueble.cliente_email}
+                        </p>
+                      )}
+                      {inmueble.cliente_telefono && (
+                        <p className="text-[11px] text-slate-500">
+                          <strong>Tel:</strong> {inmueble.cliente_telefono}
+                        </p>
+                      )}
+                      {inmueble.cliente_dni && (
+                        <p className="text-[11px] text-slate-500">
+                          <strong>DNI:</strong> {inmueble.cliente_dni}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Botones para resolver la operación */}
+                    <div className="pt-2 flex gap-2">
+                      <button
+                        onClick={() =>
+                          pedirConfirmacionOperacion(
+                            inmueble,
+                            inmueble.observaciones?.toUpperCase().includes("COMPRA")
+                              ? "CONFIRMAR_VENTA"
+                              : "CONFIRMAR_ALQUILER"
+                          )
+                        }
+                        className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer text-center"
+                      >
+                        {inmueble.observaciones?.toUpperCase().includes("COMPRA")
+                          ? "Confirmar Venta"
+                          : "Confirmar Alquiler"}
+                      </button>
+
+                      <button
+                        onClick={() => pedirConfirmacionOperacion(inmueble, "RECHAZAR")}
+                        className="py-1.5 px-3 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        Rechazar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {inmueble.observaciones && (
                   <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-3">
                     {inmueble.observaciones}
@@ -625,16 +859,16 @@ function Inmuebles() {
 
                   <button
                     onClick={() => abrirFormularioEditar(inmueble)}
-                   className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-red-100 text-red-700 transition-all duration-300 hover:bg-red-200 hover:shadow-md hover:-translate-y-0.5"
+                    className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
                     style={{ backgroundColor: "#826229" }}
                   >
                     Editar
                   </button>
 
                   <button
-                    onClick={() => manejarEliminar(inmueble.id)}
-                    className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-red-100 text-red-700 transition-all duration-300 hover:bg-red-200 hover:shadow-md hover:-translate-y-0.5"
-                  >s
+                    onClick={() => pedirConfirmacionEliminar(inmueble)}
+                    className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-red-100 text-red-700 transition-all duration-300 hover:bg-red-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                  >
                     Eliminar
                   </button>
 
@@ -645,6 +879,46 @@ function Inmuebles() {
 
           ))}
 
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN PERSONALIZADO (Reemplaza window.confirm) */}
+      {dialogoConfirmacion && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-[#826229]/10 rounded-xl text-[#826229] dark:text-[#C69B56]">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                {dialogoConfirmacion.titulo}
+              </h3>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {dialogoConfirmacion.mensaje}
+            </p>
+
+            <div className="pt-2 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDialogoConfirmacion(null)}
+                className="w-1/2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={dialogoConfirmacion.onConfirmar}
+                className={`w-1/2 py-2.5 rounded-xl text-white text-xs font-bold shadow-md transition-colors cursor-pointer ${dialogoConfirmacion.colorBoton}`}
+              >
+                {dialogoConfirmacion.textoBoton}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -200,6 +200,8 @@ export const loginUsuario = async (req, res) => {
       {
         id: usuario.id,
         rol: usuario.rol,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
       },
       process.env.JWT_SECRET,
       {

@@ -15,6 +15,7 @@ import { Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider"; // <-- Importa el proveedor
 
 import Inmuebles from "./componentes/admin/Inmuebles";
+import PortalCliente from "./componentes/cliente/PortalCliente";
 
 function App() {
   return (
@@ -24,6 +25,11 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/registro" element={<Registro />} />
+
+        {/* --- Rutas Protegidas del Cliente (Solo CLIENTE) --- */}
+        <Route element={<RutaProtegida rolesPermitidos={["CLIENTE"]} />}>
+          <Route path="/portal" element={<PortalCliente />} />
+        </Route>
 
         {/* --- Rutas Protegidas de Administración (Solo SECRETARIO) --- */}
         <Route element={<RutaProtegida rolesPermitidos={["SECRETARIO"]} />}>

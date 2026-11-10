@@ -76,10 +76,11 @@ export const editarRecibo = async (id, reciboData) => {
 };
 
 // 6. Cambiar estado de pago (PAGADO / PENDIENTE) (CU-04)
-export const cambiarEstadoRecibo = async (id, estado) => {
+export const cambiarEstadoRecibo = async (id, estado, datosExtra = {}) => {
   try {
     const response = await clienteApi.patch(`/recibos/${id}/estado`, {
       estado,
+      ...datosExtra,
     });
     return response.data;
   } catch (error) {

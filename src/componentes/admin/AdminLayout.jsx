@@ -1,10 +1,13 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { useAuth } from "../../context/AuthProvider";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react"; 
+import { getRecibos } from "../../services/recibos.service"; 
+import { getInmuebles } from "../../services/inmuebles.service"; 
 
 export default function AdminLayout() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Estado para el modo oscuro
   const [darkMode, setDarkMode] = useState(() => {
@@ -17,6 +20,98 @@ export default function AdminLayout() {
     }
     return false;
   });
+
+  // Estado para el menú desplegable de notificaciones
+  const [mostrarNotificaciones, setMostrarNotificaciones] = useState(false);
+  const [notificaciones, setNotificaciones] = useState([]);
+  const notifRef = useRef(null);
+
+  // Cargar alertas automáticas basadas en el estado real del sistema
+  useEffect(() => {
+    let activo = true;
+
+    Promise.all([getRecibos(), getInmuebles()])
+      .then(([dataRecibos, dataInmuebles]) => {
+        if (!activo) return;
+        const recibos = Array.isArray(dataRecibos) ? dataRecibos : dataRecibos?.recibos || [];
+        const pendientes = recibos.filter((r) => r.estado === "PENDIENTE");
+
+        const inmuebles = Array.isArray(dataInmuebles) ? dataInmuebles : dataInmuebles?.inmuebles || [];
+        const reservados = inmuebles.filter((i) => i.estado === "RESERVADO");
+
+        const listaAlertas = [];
+
+        // 1. Alertas individuales para cada propiedad reservada (CU-19 / CU-22)
+        reservados.forEach((inm) => {
+          const clienteNom = inm.cliente_nombre
+            ? `${inm.cliente_nombre} ${inm.cliente_apellido}`
+            : "Cliente";
+          const esCompra = inm.observaciones?.toUpperCase().includes("COMPRA");
+          const tipoOp = esCompra ? "Compra" : "Alquiler";
+
+          listaAlertas.push({
+            id: `reserva-${inm.id}`,
+            titulo: `Pedido de ${tipoOp}: ${inm.direccion}`,
+            detalle: `${clienteNom} solicitó ${tipoOp.toLowerCase()} (${inm.tipo_inmueble} - $${Number(
+              inm.precio
+            ).toLocaleString("es-AR")} USD).`,
+            ruta: "/admin/inmuebles",
+            tipo: "urgente",
+            tiempo: "Pendiente confirmación",
+          });
+        });
+
+        // 2. Alerta de Recibos Pendientes
+        if (pendientes.length > 0) {
+          listaAlertas.push({
+            id: "recibos",
+            titulo: "Recibos Pendientes",
+            detalle: `Hay ${pendientes.length} recibos pendientes de cobro este mes.`,
+            ruta: "/admin/recibos",
+            tipo: "urgente",
+            tiempo: "Atención requerida",
+          });
+        }
+
+        listaAlertas.push({
+          id: "gestion",
+          titulo: "Gestión de Propiedades",
+          detalle: "Catálogo sincronizado y listo para revisiones o nuevos ingresos.",
+          ruta: "/admin/inmuebles",
+          tipo: "info",
+          tiempo: "Sistema",
+        });
+
+        listaAlertas.push({
+          id: "bancos",
+          titulo: "Movimientos Bancarios",
+          detalle: "Cuentas Santander y Galicia conciliadas recientemente.",
+          ruta: "/admin/movimientos",
+          tipo: "exito",
+          tiempo: "Hoy",
+        });
+
+        setNotificaciones(listaAlertas);
+      })
+      .catch((err) => {
+        console.error("Error al cargar notificaciones:", err);
+      });
+
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  // Cerrar el menú si se hace clic fuera de él
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setMostrarNotificaciones(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   // Sincronizar clase .dark en el elemento html y localStorage
   useEffect(() => {
     if (darkMode) {
@@ -95,23 +190,113 @@ export default function AdminLayout() {
               )}
             </button>
             {/* Campana de Notificaciones */}
-            <button className="p-2 rounded-lg text-slate-400 hover:text-[#826229] dark:hover:text-brand-gold hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-colors cursor-pointer">
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
+                     {/* Campana de Notificaciones con Dropdown */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setMostrarNotificaciones(!mostrarNotificaciones)}
+                className={`p-2 rounded-lg text-slate-400 hover:text-[#826229] dark:hover:text-brand-gold hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-colors cursor-pointer ${
+                  mostrarNotificaciones ? "bg-slate-100 dark:bg-slate-800 text-[#826229] dark:text-brand-gold" : ""
+                }`}
+                title="Notificaciones"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-              {/* Punto de notificación rojo */}
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900" />
-            </button>
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+
+                {/* Badge con la cantidad de notificaciones */}
+                {notificaciones.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white shadow-sm ring-2 ring-white dark:ring-slate-900">
+                    {notificaciones.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Menú Desplegable (Dropdown) */}
+              {mostrarNotificaciones && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                  <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        Notificaciones
+                      </span>
+                      <span className="text-[10px] font-bold bg-[#826229]/10 text-[#826229] dark:text-[#C69B56] px-2 py-0.5 rounded-full">
+                        {notificaciones.length} activas
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setMostrarNotificaciones(false)}
+                      className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-pointer"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {notificaciones.length === 0 ? (
+                      <div className="p-6 text-center text-xs text-slate-400">
+                        No tienes notificaciones pendientes.
+                      </div>
+                    ) : (
+                      notificaciones.map((n) => (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            setMostrarNotificaciones(false);
+                            navigate(n.ruta);
+                          }}
+                          className="p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors cursor-pointer flex gap-3 text-left"
+                        >
+                          <div
+                            className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${
+                              n.tipo === "urgente"
+                                ? "bg-red-500"
+                                : n.tipo === "info"
+                                ? "bg-blue-500"
+                                : "bg-emerald-500"
+                            }`}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-1">
+                              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                                {n.titulo}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 shrink-0">
+                                {n.tiempo}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                              {n.detalle}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="p-2.5 bg-slate-50 dark:bg-slate-950/60 border-t border-slate-100 dark:border-slate-800 text-center">
+                    <button
+                      onClick={() => {
+                        setMostrarNotificaciones(false);
+                        navigate("/admin/recibos");
+                      }}
+                      className="text-xs font-semibold text-[#826229] dark:text-[#C69B56] hover:underline cursor-pointer"
+                    >
+                      Ver todos los recibos y movimientos
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             {/* Divisor */}
             <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
             {/* Tarjeta de Usuario Logueado */}
