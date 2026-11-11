@@ -26,6 +26,7 @@ export default function Recibos() {
   const [modalClonar, setModalClonar] = useState(null);
   const [periodoClonar, setPeriodoClonar] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [dialogoConfirmacion, setDialogoConfirmacion] = useState(null);
 
   // Conceptos iniciales estándar
   const conceptosBase = [
@@ -160,7 +161,10 @@ export default function Recibos() {
   const guardarReciboSubmit = async (e) => {
     e.preventDefault();
     if (!form.id_inmueble || !form.periodo) {
-      alert("Por favor completa el inmueble y período.");
+      setMensaje({
+        tipo: "error",
+        texto: "Por favor completa el inmueble y período.",
+      });
       return;
     }
 
@@ -184,7 +188,10 @@ export default function Recibos() {
       setMostrarForm(false);
       cargarDatos();
     } catch (err) {
-      setMensaje({ tipo: "error", texto: err.message });
+      setMensaje({
+        tipo: "error",
+        texto: err.response?.data?.message || err.message || "Error al guardar el recibo.",
+      });
     } finally {
       setGuardando(false);
     }
@@ -193,7 +200,10 @@ export default function Recibos() {
   // CU-02: Copiar recibo del mes anterior
   const handleConfirmarClonar = async () => {
     if (!periodoClonar.trim()) {
-      alert("Ingresa el nuevo período.");
+      setMensaje({
+        tipo: "error",
+        texto: "Por favor ingresa el nuevo período para el recibo.",
+      });
       return;
     }
 
@@ -207,7 +217,10 @@ export default function Recibos() {
       setPeriodoClonar("");
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      setMensaje({
+        tipo: "error",
+        texto: err.response?.data?.message || err.message || "Error al clonar el recibo.",
+      });
     }
   };
 
@@ -218,19 +231,36 @@ export default function Recibos() {
       await cambiarEstadoRecibo(recibo.id, nuevoEstado);
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      setMensaje({
+        tipo: "error",
+        texto: err.response?.data?.message || err.message || "Error al actualizar el estado.",
+      });
     }
   };
 
-  // Eliminar
-  const handleEliminar = async (id, num) => {
-    if (!window.confirm(`¿Seguro que deseas eliminar el recibo ${num}?`)) return;
-    try {
-      await eliminarRecibo(id);
-      cargarDatos();
-    } catch (err) {
-      alert(err.message);
-    }
+  // Eliminar recibo con diálogo de confirmación personalizado
+  const handleEliminar = (id, num) => {
+    setDialogoConfirmacion({
+      titulo: "¿Eliminar Recibo?",
+      mensaje: `¿Estás seguro de que deseas eliminar permanentemente el recibo ${num}? Esta acción no se puede deshacer.`,
+      onConfirmar: async () => {
+        try {
+          await eliminarRecibo(id);
+          setMensaje({
+            tipo: "exito",
+            texto: `El recibo ${num} fue eliminado correctamente.`,
+          });
+          cargarDatos();
+        } catch (err) {
+          setMensaje({
+            tipo: "error",
+            texto: err.response?.data?.message || err.message || "Error al eliminar el recibo.",
+          });
+        } finally {
+          setDialogoConfirmacion(null);
+        }
+      },
+    });
   };
 
   // Filtros
@@ -757,16 +787,53 @@ export default function Recibos() {
               <button
                 type="button"
                 onClick={() => setReciboImprimir(null)}
-                className="px-4 py-2 text-xs rounded-lg border border-slate-300 text-slate-700"
+                className="px-4 py-2 text-xs rounded-lg border border-slate-300 text-slate-700 cursor-pointer hover:bg-slate-50"
               >
                 Cerrar
               </button>
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#826229] text-white"
+                className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#826229] text-white cursor-pointer hover:opacity-90"
               >
                 🖨️ Mandar a Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR RECIBO */}
+      {dialogoConfirmacion && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-xl text-red-600 dark:text-red-400">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                {dialogoConfirmacion.titulo}
+              </h3>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {dialogoConfirmacion.mensaje}
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDialogoConfirmacion(null)}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={dialogoConfirmacion.onConfirmar}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-sm"
+              >
+                Sí, Eliminar
               </button>
             </div>
           </div>

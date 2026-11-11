@@ -24,6 +24,7 @@ export default function Movimientos() {
   const [mostrarFormCuenta, setMostrarFormCuenta] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+  const [dialogoConfirmacion, setDialogoConfirmacion] = useState(null);
 
   // Formulario de Movimiento
   const [formMov, setFormMov] = useState({
@@ -154,27 +155,40 @@ export default function Movimientos() {
       });
       cargarDatos();
     } catch (err) {
-      alert(err.message);
+      setMensaje({
+        tipo: "error",
+        texto: err.response?.data?.message || err.message || "Error al dar de alta la cuenta.",
+      });
     } finally {
       setGuardando(false);
     }
   };
 
-  // Eliminar movimiento (revierte saldo)
-  const handleEliminarMov = async (id) => {
-    if (
-      !window.confirm(
-        "¿Eliminar este movimiento? Se revertirá automáticamente el saldo de la cuenta bancaria."
-      )
-    )
-      return;
-
-    try {
-      await eliminarMovimiento(id);
-      cargarDatos();
-    } catch (err) {
-      alert(err.message);
-    }
+  // Eliminar movimiento (revierte saldo) con diálogo modal personalizado
+  const handleEliminarMov = (mov) => {
+    setDialogoConfirmacion({
+      titulo: "¿Eliminar Movimiento Bancario?",
+      mensaje: `¿Estás seguro de que deseas eliminar este movimiento de ${mov.tipo.toLowerCase()} (${mov.categoria}) por $${Number(
+        mov.monto
+      ).toLocaleString("es-AR")}? Se revertirá automáticamente el saldo de la cuenta bancaria.`,
+      onConfirmar: async () => {
+        try {
+          await eliminarMovimiento(mov.id);
+          setMensaje({
+            tipo: "exito",
+            texto: "Movimiento eliminado y saldo bancario revertido con éxito.",
+          });
+          cargarDatos();
+        } catch (err) {
+          setMensaje({
+            tipo: "error",
+            texto: err.response?.data?.message || err.message || "Error al eliminar el movimiento.",
+          });
+        } finally {
+          setDialogoConfirmacion(null);
+        }
+      },
+    });
   };
 
   // Totales financieros
@@ -751,8 +765,8 @@ export default function Movimientos() {
                     <button
                       type="button"
                       title="Eliminar movimiento y revertir saldo"
-                      onClick={() => handleEliminarMov(m.id)}
-                      className="text-red-500 hover:text-red-700 p-1"
+                      onClick={() => handleEliminarMov(m)}
+                      className="text-red-500 hover:text-red-700 p-1 cursor-pointer"
                     >
                       ✕
                     </button>
@@ -761,6 +775,43 @@ export default function Movimientos() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR MOVIMIENTO */}
+      {dialogoConfirmacion && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-xl text-red-600 dark:text-red-400">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                {dialogoConfirmacion.titulo}
+              </h3>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {dialogoConfirmacion.mensaje}
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDialogoConfirmacion(null)}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={dialogoConfirmacion.onConfirmar}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-sm"
+              >
+                Sí, Eliminar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
