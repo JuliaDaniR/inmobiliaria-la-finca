@@ -322,24 +322,25 @@ export default function Movimientos() {
 
       {/* MODAL REGISTRAR MOVIMIENTO (CU-05 / CU-06 / CU-07) */}
       {mostrarFormMov && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                Registrar Movimiento Bancario
-              </h2>
-              <p className="text-xs text-slate-500">
-                Registra un ingreso o gasto y vincúlalo a un inmueble para actualizar el saldo bancario.
-              </p>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-2xl max-w-2xl w-full space-y-5 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                  Registrar Movimiento Bancario
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Registra un ingreso o gasto y vincúlalo a un inmueble para actualizar el saldo bancario.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMostrarFormMov(false)}
+                className="text-slate-400 hover:text-slate-200 text-lg cursor-pointer p-1"
+              >
+                ✕
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setMostrarFormMov(false)}
-              className="text-slate-400 hover:text-slate-200"
-            >
-              ✕
-            </button>
-          </div>
 
           <form onSubmit={handleSubmitMovimiento} className="space-y-4">
             {/* TIPO: INGRESO O GASTO */}
@@ -520,6 +521,7 @@ export default function Movimientos() {
             </div>
           </form>
         </div>
+      </div>
       )}
 
       {/* MODAL CREAR CUENTA BANCARIA */}

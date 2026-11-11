@@ -37,11 +37,30 @@ export default function AdminLayout() {
         const pendientes = recibos.filter((r) => r.estado === "PENDIENTE");
 
         const inmuebles = Array.isArray(dataInmuebles) ? dataInmuebles : dataInmuebles?.inmuebles || [];
+        const pendientesRevision = inmuebles.filter((i) => i.estado === "PENDIENTE");
         const reservados = inmuebles.filter((i) => i.estado === "RESERVADO");
 
         const listaAlertas = [];
 
-        // 1. Alertas individuales para cada propiedad reservada (CU-19 / CU-22)
+        // 1. Alertas de propiedades pendientes de revisión/aprobación (CU-20 / CU-25)
+        pendientesRevision.forEach((inm) => {
+          const clienteNom = inm.cliente_nombre
+            ? `${inm.cliente_nombre} ${inm.cliente_apellido}`
+            : "Cliente";
+
+          listaAlertas.push({
+            id: `revision-${inm.id}`,
+            titulo: `Propiedad para Revisión: ${inm.direccion}`,
+            detalle: `${clienteNom} publicó/modificó ${inm.tipo_inmueble} ($${Number(
+              inm.precio
+            ).toLocaleString("es-AR")} USD). Requiere aprobación.`,
+            ruta: "/admin/inmuebles",
+            tipo: "urgente",
+            tiempo: "Pendiente revisión",
+          });
+        });
+
+        // 2. Alertas individuales para cada propiedad reservada (CU-19 / CU-22)
         reservados.forEach((inm) => {
           const clienteNom = inm.cliente_nombre
             ? `${inm.cliente_nombre} ${inm.cliente_apellido}`
@@ -61,35 +80,17 @@ export default function AdminLayout() {
           });
         });
 
-        // 2. Alerta de Recibos Pendientes
+        // 3. Alerta de Recibos Pendientes de cobro
         if (pendientes.length > 0) {
           listaAlertas.push({
             id: "recibos",
-            titulo: "Recibos Pendientes",
-            detalle: `Hay ${pendientes.length} recibos pendientes de cobro este mes.`,
+            titulo: "Recibos Pendientes de Cobro",
+            detalle: `Hay ${pendientes.length} recibo(s) con cobro pendiente este mes.`,
             ruta: "/admin/recibos",
             tipo: "urgente",
             tiempo: "Atención requerida",
           });
         }
-
-        listaAlertas.push({
-          id: "gestion",
-          titulo: "Gestión de Propiedades",
-          detalle: "Catálogo sincronizado y listo para revisiones o nuevos ingresos.",
-          ruta: "/admin/inmuebles",
-          tipo: "info",
-          tiempo: "Sistema",
-        });
-
-        listaAlertas.push({
-          id: "bancos",
-          titulo: "Movimientos Bancarios",
-          detalle: "Cuentas Santander y Galicia conciliadas recientemente.",
-          ruta: "/admin/movimientos",
-          tipo: "exito",
-          tiempo: "Hoy",
-        });
 
         setNotificaciones(listaAlertas);
       })

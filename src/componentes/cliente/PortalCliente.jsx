@@ -5,6 +5,7 @@ import { getRecibos, cambiarEstadoRecibo } from "../../services/recibos.service"
 import {
   getInmuebles,
   crearInmueble,
+  editarInmueble,
   solicitarOperacionInmueble,
 } from "../../services/inmuebles.service";
 
@@ -54,6 +55,12 @@ export default function PortalCliente() {
   const [reciboParaPagar, setReciboParaPagar] = useState(null);
   const [reciboParaVer, setReciboParaVer] = useState(null);
   const [inmuebleParaOperar, setInmuebleParaOperar] = useState(null); // { inmueble, tipo: 'ALQUILER' | 'COMPRA' }
+  const [inmuebleParaDetalle, setInmuebleParaDetalle] = useState(null); // Inmueble seleccionado para ver ficha técnica
+  const [inmuebleParaEditar, setInmuebleParaEditar] = useState(null); // Inmueble propio para editar
+  const [editandoInmueble, setEditandoInmueble] = useState(false);
+  const [archivoFotoEdicion, setArchivoFotoEdicion] = useState(null);
+  const [previewFotoEdicion, setPreviewFotoEdicion] = useState(null);
+  const [mostrarConfirmacionSalir, setMostrarConfirmacionSalir] = useState(false);
 
   // Formulario de Pago
   const [metodoPago, setMetodoPago] = useState("TRANSFERENCIA");
@@ -248,6 +255,66 @@ export default function PortalCliente() {
   };
 
   // ==========================================
+  // EDITAR PROPIEDAD PROPIA (CU-20 / CU-25)
+  // ==========================================
+  const abrirModalEdicion = (inm) => {
+    setInmuebleParaEditar({
+      id: inm.id,
+      tipo_inmueble: inm.tipo_inmueble || "Departamento",
+      precio: inm.precio || "",
+      direccion: inm.direccion || "",
+      localidad: inm.localidad || "",
+      provincia: inm.provincia || "",
+      observaciones: inm.observaciones || "",
+      fotos: inm.fotos || "",
+    });
+    setArchivoFotoEdicion(null);
+    setPreviewFotoEdicion(obtenerUrlFoto(inm.fotos));
+  };
+
+  const handleEditarInmueble = async (e) => {
+    e.preventDefault();
+    if (!inmuebleParaEditar) return;
+
+    setEditandoInmueble(true);
+    try {
+      const formData = new FormData();
+      formData.append("tipo_inmueble", inmuebleParaEditar.tipo_inmueble);
+      formData.append("precio", inmuebleParaEditar.precio);
+      formData.append("direccion", inmuebleParaEditar.direccion);
+      formData.append("localidad", inmuebleParaEditar.localidad);
+      formData.append("provincia", inmuebleParaEditar.provincia);
+      formData.append("observaciones", inmuebleParaEditar.observaciones);
+
+      if (archivoFotoEdicion) {
+        formData.append("foto", archivoFotoEdicion);
+      } else if (inmuebleParaEditar.fotos) {
+        formData.append("fotos", inmuebleParaEditar.fotos);
+      }
+
+      const res = await editarInmueble(inmuebleParaEditar.id, formData);
+      setMensajeAlerta({
+        tipo: "exito",
+        texto:
+          res.message ||
+          "¡Propiedad actualizada y enviada a revisión del administrador!",
+      });
+      await refrescarInmuebles();
+      setInmuebleParaEditar(null);
+    } catch (error) {
+      console.error("Error al editar inmueble:", error);
+      setMensajeAlerta({
+        tipo: "error",
+        texto:
+          error.response?.data?.message ||
+          "Error al actualizar la propiedad. Intenta nuevamente.",
+      });
+    } finally {
+      setEditandoInmueble(false);
+    }
+  };
+
+  // ==========================================
   // SOLICITUD DE ALQUILER O COMPRA (CU-19 / CU-22 / CU-24)
   // ==========================================
   const handleEnviarSolicitud = async (e) => {
@@ -316,8 +383,19 @@ export default function PortalCliente() {
     return r.estado === filtroRecibo;
   });
 
-  // Inmuebles para catálogo
+  // Inmuebles para catálogo: solo disponibles y que NO pertenezcan al propio cliente
   const catalogoFiltrado = inmuebles.filter((inm) => {
+    // Excluir propiedades propias del cliente (para que no se las ofrezca a sí mismo)
+    const esPropia =
+      inm.id_usuario &&
+      Number(inm.id_usuario) === Number(user?.id) &&
+      !inm.observaciones?.includes("[SOLICITUD");
+
+    if (esPropia) return false;
+
+    // Solo propiedades con estado DISPONIBLE se muestran en el catálogo para alquilar o comprar
+    if ((inm.estado || "").toUpperCase() !== "DISPONIBLE") return false;
+
     const texto = `${inm.direccion} ${inm.tipo_inmueble} ${inm.localidad} ${inm.provincia}`.toLowerCase();
     return texto.includes(busquedaInmueble.toLowerCase().trim());
   });
@@ -376,7 +454,7 @@ export default function PortalCliente() {
 
             {/* Salir */}
             <button
-              onClick={logout}
+              onClick={() => setMostrarConfirmacionSalir(true)}
               className="px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-lg transition-colors cursor-pointer"
             >
               Cerrar Sesión
@@ -708,29 +786,38 @@ export default function PortalCliente() {
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-2">
                             <button
-                              onClick={() =>
-                                setInmuebleParaOperar({
-                                  inmueble: inm,
-                                  tipo: "ALQUILER",
-                                })
-                              }
-                              className="bg-[#826229] hover:bg-[#6c5120] text-white py-2 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer text-center"
+                              onClick={() => setInmuebleParaDetalle(inm)}
+                              className="w-full py-2 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-all cursor-pointer text-center"
                             >
-                              Alquilar (CU-19)
+                              Ver Detalle
                             </button>
-                            <button
-                              onClick={() =>
-                                setInmuebleParaOperar({
-                                  inmueble: inm,
-                                  tipo: "COMPRA",
-                                })
-                              }
-                              className="bg-[#024384] hover:bg-blue-900 text-white py-2 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer text-center"
-                            >
-                              Comprar (CU-22)
-                            </button>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                onClick={() =>
+                                  setInmuebleParaOperar({
+                                    inmueble: inm,
+                                    tipo: "ALQUILER",
+                                  })
+                                }
+                                className="bg-[#826229] hover:bg-[#6c5120] text-white py-2 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer text-center"
+                              >
+                                Alquilar (CU-19)
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setInmuebleParaOperar({
+                                    inmueble: inm,
+                                    tipo: "COMPRA",
+                                  })
+                                }
+                                className="bg-[#024384] hover:bg-blue-900 text-white py-2 rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer text-center"
+                              >
+                                Comprar (CU-22)
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1098,51 +1185,95 @@ export default function PortalCliente() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {misPublicaciones.map((inm) => (
-                      <div
-                        key={inm.id}
-                        className="bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="relative h-44 w-full bg-slate-100 dark:bg-slate-800">
-                            <img
-                              src={obtenerUrlFoto(inm.fotos)}
-                              alt={inm.tipo_inmueble}
-                              className="w-full h-full object-cover"
-                            />
-                            <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider bg-emerald-600 text-white shadow-sm">
-                              {inm.estado || "DISPONIBLE"}
-                            </span>
-                          </div>
+                    {misPublicaciones.map((inm) => {
+                      const est = (inm.estado || "DISPONIBLE").toUpperCase();
+                      return (
+                        <div
+                          key={inm.id}
+                          className="bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between"
+                        >
+                          <div>
+                            <div className="relative h-44 w-full bg-slate-100 dark:bg-slate-800">
+                              <img
+                                src={obtenerUrlFoto(inm.fotos)}
+                                alt={inm.tipo_inmueble}
+                                className="w-full h-full object-cover"
+                              />
+                              <span
+                                className={`absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider text-white shadow-sm ${
+                                  est === "PENDIENTE"
+                                    ? "bg-blue-600 ring-1 ring-blue-300"
+                                    : est === "RESERVADO"
+                                    ? "bg-amber-500"
+                                    : est === "VENDIDO"
+                                    ? "bg-purple-600"
+                                    : est === "RECHAZADO"
+                                    ? "bg-red-600"
+                                    : "bg-emerald-600"
+                                }`}
+                              >
+                                {est === "PENDIENTE"
+                                  ? "En Revisión"
+                                  : est === "DISPONIBLE"
+                                  ? "Publicado"
+                                  : est}
+                              </span>
+                            </div>
 
-                          <div className="p-4">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#826229] dark:text-[#C69B56]">
-                              {inm.tipo_inmueble}
-                            </span>
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1">
-                              {inm.direccion}
-                            </h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                              {inm.localidad}, {inm.provincia}
-                            </p>
-                            <p className="text-base font-extrabold text-[#024384] dark:text-blue-400 mt-2">
-                              ${Number(inm.precio).toLocaleString("es-AR")} USD
-                            </p>
-                            {inm.observaciones && (
-                              <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 line-clamp-2">
-                                {limpiarDescripcion(inm.observaciones)}
+                            <div className="p-4">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-[#826229] dark:text-[#C69B56]">
+                                {inm.tipo_inmueble}
+                              </span>
+                              <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1">
+                                {inm.direccion}
+                              </h3>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                {inm.localidad}, {inm.provincia}
                               </p>
-                            )}
+                              <p className="text-base font-extrabold text-[#024384] dark:text-blue-400 mt-2">
+                                ${Number(inm.precio).toLocaleString("es-AR")} USD
+                              </p>
+                              {inm.observaciones && (
+                                <p className="text-xs text-slate-600 dark:text-slate-300 mt-2 line-clamp-2">
+                                  {limpiarDescripcion(inm.observaciones)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="p-4 pt-0">
+                            <div className="border-t border-slate-100 dark:border-slate-800 pt-3 flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-semibold text-slate-400">
+                                {est === "PENDIENTE"
+                                  ? "En revisión por el admin"
+                                  : est === "RESERVADO"
+                                  ? "Con propuesta en curso"
+                                  : "Publicación activa"}
+                              </span>
+                              <button
+                                onClick={() => abrirModalEdicion(inm)}
+                                className="px-3 py-1.5 text-xs font-bold rounded-lg bg-[#826229] hover:bg-[#6c5120] text-white transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                              >
+                                <svg
+                                  className="w-3.5 h-3.5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                                Editar
+                              </button>
+                            </div>
                           </div>
                         </div>
-
-                        <div className="p-4 pt-0">
-                          <span className="text-[10px] font-semibold text-slate-400 block border-t border-slate-100 dark:border-slate-800 pt-2">
-                            Publicado bajo tu titularidad
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1563,6 +1694,343 @@ export default function PortalCliente() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MODAL 4: VER DETALLE DE PROPIEDAD (CATÁLOGO DEL PORTAL)               */}
+      {/* ===================================================================== */}
+      {inmuebleParaDetalle && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <span className="text-[10px] font-bold text-[#826229] dark:text-[#C69B56] uppercase tracking-wider">
+                  Ficha Técnica Inmobiliaria
+                </span>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-0.5">
+                  {inmuebleParaDetalle.direccion}
+                </h2>
+                <p className="text-xs text-slate-500">
+                  {inmuebleParaDetalle.localidad}
+                  {inmuebleParaDetalle.provincia ? `, ${inmuebleParaDetalle.provincia}` : ""} • {inmuebleParaDetalle.tipo_inmueble}
+                </p>
+              </div>
+
+              {/* Botón único de cierre */}
+              <button
+                onClick={() => setInmuebleParaDetalle(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl p-1 cursor-pointer"
+                title="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="relative h-64 w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 mb-6">
+              <img
+                src={obtenerUrlFoto(inmuebleParaDetalle.fotos)}
+                alt={inmuebleParaDetalle.direccion}
+                className="w-full h-full object-cover"
+              />
+              <span className="absolute top-3 right-3 text-[10px] font-bold px-3 py-1 rounded-md uppercase tracking-wider bg-emerald-500 text-white shadow-md">
+                {inmuebleParaDetalle.estado || "DISPONIBLE"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 mb-6 text-xs">
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase block">
+                  Valor Publicado
+                </span>
+                <span className="text-base font-extrabold text-[#024384] dark:text-blue-400">
+                  ${Number(inmuebleParaDetalle.precio).toLocaleString("es-AR")} USD
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase block">
+                  Tipo de Propiedad
+                </span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
+                  {inmuebleParaDetalle.tipo_inmueble}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] text-slate-400 font-semibold uppercase block">
+                  Estado
+                </span>
+                <span className="font-bold text-slate-800 dark:text-slate-200">
+                  {inmuebleParaDetalle.estado || "DISPONIBLE"}
+                </span>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-2">
+                Descripción y Características
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                {inmuebleParaDetalle.observaciones ||
+                  "Propiedad de primer nivel administrada de forma exclusiva por Inmobiliaria La Finca. Excelente ubicación con todos los servicios y accesos disponibles."}
+              </p>
+            </div>
+
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 flex gap-3">
+              <button
+                onClick={() => {
+                  const inm = inmuebleParaDetalle;
+                  setInmuebleParaDetalle(null);
+                  setInmuebleParaOperar({ inmueble: inm, tipo: "ALQUILER" });
+                }}
+                className="flex-1 bg-[#826229] hover:bg-[#6c5120] text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer text-center"
+              >
+                Solicitar Alquiler (CU-19)
+              </button>
+              <button
+                onClick={() => {
+                  const inm = inmuebleParaDetalle;
+                  setInmuebleParaDetalle(null);
+                  setInmuebleParaOperar({ inmueble: inm, tipo: "COMPRA" });
+                }}
+                className="flex-1 bg-[#024384] hover:bg-blue-900 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer text-center"
+              >
+                Solicitar Compra (CU-22)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MODAL 5: EDITAR PROPIEDAD PROPIA (CU-20 / CU-25)                      */}
+      {/* ===================================================================== */}
+      {inmuebleParaEditar && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#826229] dark:text-[#C69B56]">
+                  Gestión de Mis Inmuebles
+                </span>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Editar Propiedad Publicada
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Al guardar, pasará a revisión del administrador antes de actualizarse en el catálogo.
+                </p>
+              </div>
+              <button
+                onClick={() => setInmuebleParaEditar(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditarInmueble} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Tipo de Inmueble *
+                  </label>
+                  <select
+                    value={inmuebleParaEditar.tipo_inmueble}
+                    onChange={(e) =>
+                      setInmuebleParaEditar({
+                        ...inmuebleParaEditar,
+                        tipo_inmueble: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                  >
+                    <option value="Departamento">Departamento</option>
+                    <option value="Casa">Casa</option>
+                    <option value="Oficina">Oficina</option>
+                    <option value="Local Comercial">Local Comercial</option>
+                    <option value="Chalet">Chalet</option>
+                    <option value="Terreno">Terreno</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Precio (USD) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    value={inmuebleParaEditar.precio}
+                    onChange={(e) =>
+                      setInmuebleParaEditar({
+                        ...inmuebleParaEditar,
+                        precio: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="text-xs">
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Dirección *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={inmuebleParaEditar.direccion}
+                  onChange={(e) =>
+                    setInmuebleParaEditar({
+                      ...inmuebleParaEditar,
+                      direccion: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Localidad / Ciudad
+                  </label>
+                  <input
+                    type="text"
+                    value={inmuebleParaEditar.localidad}
+                    onChange={(e) =>
+                      setInmuebleParaEditar({
+                        ...inmuebleParaEditar,
+                        localidad: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Provincia
+                  </label>
+                  <input
+                    type="text"
+                    value={inmuebleParaEditar.provincia}
+                    onChange={(e) =>
+                      setInmuebleParaEditar({
+                        ...inmuebleParaEditar,
+                        provincia: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                  />
+                </div>
+              </div>
+
+              {/* Fotografía */}
+              <div className="text-xs">
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Actualizar Fotografía (Opcional)
+                </label>
+                <div className="flex items-center gap-4">
+                  {previewFotoEdicion && (
+                    <img
+                      src={previewFotoEdicion}
+                      alt="Previa"
+                      className="w-16 h-16 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
+                    />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setArchivoFotoEdicion(file);
+                        setPreviewFotoEdicion(URL.createObjectURL(file));
+                      }
+                    }}
+                    className="text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#826229]/10 file:text-[#826229] dark:file:text-[#C69B56] hover:file:bg-[#826229]/20 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="text-xs">
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Observaciones / Descripción
+                </label>
+                <textarea
+                  rows="3"
+                  value={inmuebleParaEditar.observaciones}
+                  onChange={(e) =>
+                    setInmuebleParaEditar({
+                      ...inmuebleParaEditar,
+                      observaciones: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100"
+                ></textarea>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setInmuebleParaEditar(null)}
+                  className="w-1/2 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editandoInmueble}
+                  className="w-1/2 bg-[#826229] hover:bg-[#6c5120] text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer"
+                >
+                  {editandoInmueble ? "Guardando..." : "Guardar y Enviar a Revisión"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MODAL 6: CONFIRMACIÓN DE CIERRE DE SESIÓN                             */}
+      {/* ===================================================================== */}
+      {mostrarConfirmacionSalir && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-xl text-red-600 dark:text-red-400">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  ¿Cerrar Sesión?
+                </h3>
+                <p className="text-xs text-slate-500">
+                  ¿Estás seguro de que deseas salir del Portal de Cliente?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setMostrarConfirmacionSalir(false)}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setMostrarConfirmacionSalir(false);
+                  logout();
+                }}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-sm"
+              >
+                Sí, Salir
+              </button>
+            </div>
           </div>
         </div>
       )}

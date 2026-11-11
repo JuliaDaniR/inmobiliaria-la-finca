@@ -60,7 +60,7 @@ function Login() {
       if (loggedUser.rol === "SECRETARIO") {
         navigate("/admin"); // Los secretarios (administradores) ingresan al Panel de Control
       } else {
-        navigate("/");      // Los clientes son redirigidos a la página principal pública
+        navigate("/portal"); // Los clientes son redirigidos directamente a su Portal de Cliente
       }
     } catch (err) {
       // Capturamos el error devuelto por la API backend y lo mostramos en el banner rojo

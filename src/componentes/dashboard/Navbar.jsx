@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthProvider";
 
 function Navbar() {
   const { user, logout } = useAuth();
+  const [mostrarConfirmacionSalir, setMostrarConfirmacionSalir] = useState(false);
 
   // Convierte las rutas relativas de imágenes en URL del backend.
   const obtenerUrlFotoPerfil = (foto) => {
@@ -179,7 +180,7 @@ function Navbar() {
                 )}
 
                 <button
-                  onClick={logout}
+                  onClick={() => setMostrarConfirmacionSalir(true)}
                   className="px-3 py-1.5 text-xs font-semibold text-brand-muted hover:text-red-600 dark:hover:text-red-400 border border-gray-200 dark:border-gray-800 rounded-lg transition-all cursor-pointer bg-transparent"
                 >
                   Salir
@@ -205,6 +206,47 @@ function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* MODAL CONFIRMACIÓN CIERRE DE SESIÓN */}
+      {mostrarConfirmacionSalir && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-xl text-red-600 dark:text-red-400">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  ¿Cerrar Sesión?
+                </h3>
+                <p className="text-xs text-slate-500">
+                  ¿Estás seguro de que deseas salir de tu cuenta?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setMostrarConfirmacionSalir(false)}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setMostrarConfirmacionSalir(false);
+                  logout();
+                }}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-sm"
+              >
+                Sí, Salir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
