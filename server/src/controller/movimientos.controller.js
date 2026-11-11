@@ -6,9 +6,24 @@ import pool from "../db.js";
 // ============================================================================
 export const obtenerCuentas = async (req, res) => {
   try {
-    const [cuentas] = await pool.query(
+    let [cuentas] = await pool.query(
       "SELECT * FROM cuentas_bancarias ORDER BY banco ASC"
     );
+
+    // Si no hay cuentas registradas (ej: instalación limpia o pruebas), inicializamos las cuentas corporativas por defecto
+    if (cuentas.length === 0) {
+      await pool.query(
+        `INSERT INTO cuentas_bancarias (banco, numero_cuenta, cbu_alias, titular, tipo_cuenta, saldo) VALUES
+         ('Banco Santander', 'CC-084-382914/2', 'FINCA.SANTANDER.PESOS', 'Inmobiliaria La Finca S.A.', 'Cuenta Corriente', 450000.00),
+         ('Banco Galicia', 'CA-120-918234/7', 'FINCA.GALICIA.PESOS', 'Inmobiliaria La Finca S.A.', 'Caja de Ahorro', 280000.00)`
+      );
+
+      const [cuentasIniciales] = await pool.query(
+        "SELECT * FROM cuentas_bancarias ORDER BY banco ASC"
+      );
+      cuentas = cuentasIniciales;
+    }
+
     return res.status(200).json(cuentas);
   } catch (error) {
     console.error("Error al obtener cuentas bancarias:", error);

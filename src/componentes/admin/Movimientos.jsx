@@ -99,7 +99,10 @@ export default function Movimientos() {
   const handleSubmitMovimiento = async (e) => {
     e.preventDefault();
     if (!formMov.id_cuenta || !formMov.monto || !formMov.categoria) {
-      alert("Por favor completa cuenta, categoría y monto.");
+      setMensaje({
+        tipo: "error",
+        texto: "Por favor selecciona una cuenta bancaria, categoría y monto válidos.",
+      });
       return;
     }
 
@@ -110,7 +113,7 @@ export default function Movimientos() {
       await registrarMovimiento(formMov);
       setMensaje({
         tipo: "exito",
-        texto: `Movimiento de ${formMov.tipo.toLowerCase()} registrado y saldo bancario actualizado.`,
+        texto: `Movimiento de ${formMov.tipo.toLowerCase()} registrado y saldo bancario actualizado con éxito.`,
       });
       setMostrarFormMov(false);
       setFormMov({
@@ -124,7 +127,10 @@ export default function Movimientos() {
       });
       cargarDatos();
     } catch (err) {
-      setMensaje({ tipo: "error", texto: err.message });
+      setMensaje({
+        tipo: "error",
+        texto: err.response?.data?.message || err.message || "Error al registrar el movimiento.",
+      });
     } finally {
       setGuardando(false);
     }
@@ -396,21 +402,41 @@ export default function Movimientos() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Cuenta Bancaria <span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Cuenta Bancaria <span className="text-red-500">*</span>
+                  </label>
+                  {cuentas.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setMostrarFormCuenta(true)}
+                      className="text-[11px] font-bold text-[#826229] dark:text-[#C69B56] hover:underline cursor-pointer"
+                    >
+                      + Crear Cuenta
+                    </button>
+                  )}
+                </div>
                 <select
                   required
                   value={formMov.id_cuenta}
                   onChange={(e) => setFormMov({ ...formMov, id_cuenta: e.target.value })}
                   className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
                 >
-                  {cuentas.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.banco} ({c.numero_cuenta})
-                    </option>
-                  ))}
+                  {cuentas.length === 0 ? (
+                    <option value="">No hay cuentas cargadas (crea una primero)</option>
+                  ) : (
+                    cuentas.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.banco} ({c.numero_cuenta}) - Saldo: ${Number(c.saldo).toLocaleString("es-AR")}
+                      </option>
+                    ))
+                  )}
                 </select>
+                {cuentas.length === 0 && (
+                  <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
+                    ⚠️ No hay cuentas bancarias registradas. Haz clic en &ldquo;+ Crear Cuenta&rdquo; para dar de alta una.
+                  </p>
+                )}
               </div>
 
               <div>
