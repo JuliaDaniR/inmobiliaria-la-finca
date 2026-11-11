@@ -406,7 +406,7 @@ export default function PortalCliente() {
       <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/portal" className="flex items-center gap-2">
               <img
                 src={darkMode ? "/img/logo-la-finca.png" : "/img/logo-la-finca-light.png"}
                 alt="Logo La Finca"
@@ -440,17 +440,6 @@ export default function PortalCliente() {
                 </svg>
               )}
             </button>
-
-            {/* Volver a la web pública */}
-            <Link
-              to="/"
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Sitio Web
-            </Link>
 
             {/* Salir */}
             <button

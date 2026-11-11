@@ -1,3 +1,6 @@
+import { Route, Routes, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthProvider";
+
 import Dashboard from "./componentes/Dashboard";
 import Login from "./componentes/autenticacion/Login";
 import Registro from "./componentes/autenticacion/Registro";
@@ -8,23 +11,79 @@ import Recibos from "./componentes/admin/Recibos";
 import Movimientos from "./componentes/admin/Movimientos";
 import Reportes from "./componentes/admin/Reportes";
 import Configuracion from "./componentes/admin/Configuracion";
-
 import Clientes from "./componentes/admin/Clientes";
-
-import { Route, Routes } from "react-router-dom";
-import { AuthProvider } from "./context/AuthProvider"; // <-- Importa el proveedor
-
 import Inmuebles from "./componentes/admin/Inmuebles";
 import PortalCliente from "./componentes/cliente/PortalCliente";
 
+/**
+ * Ruta raíz (/):
+ * - Si el usuario está autenticado, va directo a su panel correspondiente (cliente al portal, secretario a admin).
+ * - Si no está autenticado (invitado), ve el sitio público (landing page).
+ */
+function RutaInicio() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] dark:bg-brand-bg">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#826229]"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to={user.rol === "SECRETARIO" ? "/admin" : "/portal"} replace />;
+  }
+
+  return <Dashboard />;
+}
+
+/**
+ * Ruta de acceso público exclusivo (Login / Registro):
+ * Si el usuario ya inició sesión, lo redirige directamente a su portal/admin.
+ */
+function RutaSoloInvitados({ children }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] dark:bg-brand-bg">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#826229]"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to={user.rol === "SECRETARIO" ? "/admin" : "/portal"} replace />;
+  }
+
+  return children;
+}
+
 function App() {
   return (
-    <AuthProvider> {/* <-- Envuelve todo en el AuthProvider */}
+    <AuthProvider>
       <Routes>
-        {/* --- Rutas Públicas (Cualquiera puede entrar, INVITADO) --- */}
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/registro" element={<Registro />} />
+        {/* --- Ruta Raíz Condicional --- */}
+        <Route path="/" element={<RutaInicio />} />
+
+        {/* --- Autenticación (Solo invitados sin sesión) --- */}
+        <Route
+          path="/login"
+          element={
+            <RutaSoloInvitados>
+              <Login />
+            </RutaSoloInvitados>
+          }
+        />
+        <Route
+          path="/registro"
+          element={
+            <RutaSoloInvitados>
+              <Registro />
+            </RutaSoloInvitados>
+          }
+        />
 
         {/* --- Rutas Protegidas del Cliente (Solo CLIENTE) --- */}
         <Route element={<RutaProtegida rolesPermitidos={["CLIENTE"]} />}>
@@ -34,20 +93,18 @@ function App() {
         {/* --- Rutas Protegidas de Administración (Solo SECRETARIO) --- */}
         <Route element={<RutaProtegida rolesPermitidos={["SECRETARIO"]} />}>
           <Route path="/admin" element={<AdminLayout />}>
-            
-            {/* Ruta index (/admin) renderiza el Panel de Control principal */}
             <Route index element={<PanelControl />} />
-            
-            {/* Subrutas secundarias (dummy por ahora para que no den error al hacer clic en el Sidebar) */}
             <Route path="inmuebles" element={<Inmuebles />} />
             <Route path="clientes" element={<Clientes />} />
             <Route path="recibos" element={<Recibos />} />
             <Route path="movimientos" element={<Movimientos />} />
             <Route path="reportes" element={<Reportes />} />
             <Route path="configuracion" element={<Configuracion />} />
-            
           </Route>
         </Route>
+
+        {/* --- Ruta comodín: cualquier ruta desconocida redirige al inicio --- */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AuthProvider>
   );
