@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1:3306
--- Tiempo de generación: 09-11-2026 a las 13:54:10
+-- Tiempo de generación: 11-11-2026 a las 13:32:21
 -- Versión del servidor: 9.1.0
 -- Versión de PHP: 8.3.14
 
@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS `conceptos_recibo` (
   `es_obligatorio` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `fk_conceptos_recibos` (`id_recibo`)
-) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=49 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 --
 -- Volcado de datos para la tabla `conceptos_recibo`
@@ -62,9 +62,7 @@ INSERT INTO `conceptos_recibo` (`id`, `id_recibo`, `concepto`, `monto`, `es_obli
 (17, 5, 'Alquiler Comercial', 210000.00, 1),
 (18, 5, 'Expensas Edificio', 25000.00, 1),
 (19, 5, 'Impuestos Municipales', 10000.00, 0),
-(20, 6, 'Alquiler Chalet', 320000.00, 1),
-(21, 6, 'Mantenimiento Parque', 25000.00, 0),
-(22, 6, 'Agua Corriente', 15000.00, 0);
+(34, 8, 'Alquiler Mensual', 165000.00, 1);
 
 -- --------------------------------------------------------
 
@@ -84,15 +82,16 @@ CREATE TABLE IF NOT EXISTS `cuentas_bancarias` (
   `createdAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 --
 -- Volcado de datos para la tabla `cuentas_bancarias`
 --
 
 INSERT INTO `cuentas_bancarias` (`id`, `banco`, `numero_cuenta`, `cbu_alias`, `titular`, `tipo_cuenta`, `saldo`, `createdAt`, `updatedAt`) VALUES
-(1, 'Banco Santander', 'CC-45892-01', 'LAFINCA.PROPIEDADES', 'Inmobiliaria La Finca S.A.', 'Cuenta Corriente', 500000.00, '2026-11-08 00:16:14', '2026-11-08 00:16:14'),
-(2, 'Banco Galicia', 'CA-88912-03', 'LAFINCA.GALICIA', 'Inmobiliaria La Finca S.A.', 'Caja de Ahorro', 250000.00, '2026-11-08 03:18:52', '2026-11-08 03:18:52');
+(1, 'Banco Santander', 'CC-45892-01', 'LAFINCA.PROPIEDADES', 'Inmobiliaria La Finca S.A.', 'Cuenta Corriente', 624800.00, '2026-11-08 00:16:14', '2026-11-11 11:39:01'),
+(2, 'Banco Galicia', 'CA-88912-03', 'LAFINCA.GALICIA', 'Inmobiliaria La Finca S.A.', 'Caja de Ahorro', 400000.00, '2026-11-08 03:18:52', '2026-11-10 13:58:30'),
+(3, 'Banco Santa Fe', 'CC-36477332', 'LAFINCA.SANTAFE', 'Inmobiliaria La Finca S.A.', 'Cuenta Corriente', 12345.00, '2026-11-11 11:36:24', '2026-11-11 11:36:57');
 
 -- --------------------------------------------------------
 
@@ -116,7 +115,7 @@ CREATE TABLE IF NOT EXISTS `inmuebles` (
   `updatedAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `fk_inmuebles_usuarios` (`id_usuario`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 --
 -- Volcado de datos para la tabla `inmuebles`
@@ -125,10 +124,10 @@ CREATE TABLE IF NOT EXISTS `inmuebles` (
 INSERT INTO `inmuebles` (`id`, `id_usuario`, `tipo_inmueble`, `precio`, `direccion`, `localidad`, `provincia`, `estado`, `fotos`, `observaciones`, `createdAt`, `updatedAt`) VALUES
 (1, NULL, 'Casa', 125000.00, 'Av. del Libertador 1200', 'CABA', 'Buenos Aires', 'DISPONIBLE', 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=600&q=80', 'Excelente propiedad de 3 dormitorios con piscina.', '2026-07-21 16:45:15', '2026-07-21 16:45:15'),
 (2, NULL, 'Departamento', 85000.00, 'Calle Corrientes 450', 'Rosario', 'Santa Fe', 'DISPONIBLE', 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80', 'Departamento céntrico de 2 ambientes luminoso.', '2026-07-21 16:45:15', '2026-07-21 16:45:15'),
-(3, NULL, 'Oficina', 210000.00, 'Bv. Chacabuco 800', 'Córdoba', 'Córdoba', 'DISPONIBLE', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80', 'Oficina corporativa en zona comercial.', '2026-07-21 16:45:15', '2026-07-21 16:45:15'),
-(4, NULL, 'Chalet', 320000.00, 'Av. Pellegrini 2100', 'Rosario', 'Santa Fe', 'RESERVADO', 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80', 'Chalet de categoría con amplio jardín.', '2026-07-21 16:45:15', '2026-07-21 16:45:15'),
-(5, NULL, 'Penthouse', 450000.00, 'Puerto Madero - Torres del Parque 500', 'CABA', 'Buenos Aires', 'DISPONIBLE', 'https://images.unsplash.com/photo-1512915922686-57c11dde9b6b?auto=format&fit=crop&w=600&q=80', 'Penthouse exclusivo con vista panorámica al río, terraza privada y acabados de lujo.', '2026-07-21 16:57:42', '2026-07-21 16:57:42'),
-(6, NULL, 'Duplex', 165000.00, 'Calle San Martín 1420', 'Mendoza', 'Mendoza', 'DISPONIBLE', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=600&q=80', 'Dúplex moderno de 3 ambientes en zona residencial con cochera doble.', '2026-07-21 16:57:42', '2026-07-21 16:57:42');
+(3, 14, 'Oficina', 210000.00, 'Bv. Chacabuco 800', 'Córdoba', 'Córdoba', 'VENDIDO', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80', '[SOLICITUD COMPRA - Cliente: undefined undefined (ID: 14) - Propuesta/Seña: $65000] Oficina corporativa en zona comercial.', '2026-07-21 16:45:15', '2026-11-10 15:31:10'),
+(4, NULL, 'Chalet', 320000.00, 'Av. Pellegrini 2100', 'Rosario', 'Santa Fe', 'DISPONIBLE', 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80', 'Chalet de categoría con amplio jardín.', '2026-07-21 16:45:15', '2026-11-10 16:08:04'),
+(5, 10, 'Penthouse', 450000.00, 'Puerto Madero - Torres del Parque 500', 'CABA', 'Buenos Aires', 'VENDIDO', 'https://images.unsplash.com/photo-1512915922686-57c11dde9b6b?auto=format&fit=crop&w=600&q=80', '[SOLICITUD COMPRA - Cliente: Yazmin Ortiz (ID: 10) - Propuesta/Seña: $250000] Penthouse exclusivo con vista panorámica al río, terraza privada y acabados de lujo.', '2026-07-21 16:57:42', '2026-11-11 11:39:01'),
+(6, 14, 'Duplex', 165000.00, 'Calle San Martín 1420', 'Mendoza', 'Mendoza', 'ALQUILADO', 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=600&q=80', '[SOLICITUD ALQUILER - Cliente: Mariana Gómez (ID: 14) - Plazo: 24 meses, Garantía: Garantía Propietaria] Dúplex moderno de 3 ambientes en zona residencial con cochera doble.', '2026-07-21 16:57:42', '2026-11-10 16:08:08');
 
 -- --------------------------------------------------------
 
@@ -153,7 +152,7 @@ CREATE TABLE IF NOT EXISTS `movimientos_bancarios` (
   KEY `fk_movimientos_cuentas` (`id_cuenta`),
   KEY `fk_movimientos_inmuebles` (`id_inmueble`),
   KEY `fk_movimientos_recibos` (`id_recibo`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 --
 -- Volcado de datos para la tabla `movimientos_bancarios`
@@ -166,7 +165,12 @@ INSERT INTO `movimientos_bancarios` (`id`, `id_cuenta`, `id_inmueble`, `id_recib
 (4, 1, 3, NULL, 'GASTO', 'Sueldo señora de limpieza', 80000.00, '2026-10-30', 'Honorarios mensuales de maestranza en oficinas.', '2026-11-08 03:18:52', '2026-11-08 03:18:52'),
 (5, 1, 1, NULL, 'INGRESO', 'Cobro de Alquiler', 158000.00, '2026-11-04', 'Cobro Recibo REC-2026-003 (Carlos Benítez)', '2026-11-08 03:18:52', '2026-11-08 03:18:52'),
 (6, 1, 2, NULL, 'GASTO', 'Mantenimiento y plomería', 35000.00, '2026-11-02', 'Reparación de bomba elevadora de agua y tablero.', '2026-11-08 03:18:52', '2026-11-08 03:18:52'),
-(7, 2, 4, NULL, 'GASTO', 'Mantenimiento y plomería', 22000.00, '2026-11-05', 'Desobstrucción y service de cañerías en cocina.', '2026-11-08 03:18:52', '2026-11-08 03:18:52');
+(7, 2, 4, NULL, 'GASTO', 'Mantenimiento y plomería', 22000.00, '2026-11-05', 'Desobstrucción y service de cañerías en cocina.', '2026-11-08 03:18:52', '2026-11-08 03:18:52'),
+(8, 2, NULL, NULL, 'INGRESO', 'Comisión Inmobiliaria', 150000.00, '2026-11-10', 'Factura N° 345', '2026-11-10 13:58:30', '2026-11-10 13:58:30'),
+(9, 1, 2, 4, 'INGRESO', 'Cobro de Alquiler', 105000.00, '2026-11-10', 'Cobro online recibo REC-2026-004 (Mariana Gómez)', '2026-11-10 15:02:40', '2026-11-10 15:02:40'),
+(10, 1, 3, NULL, 'INGRESO', 'Comisión por Venta', 6300.00, '2026-11-10', 'Comisión por venta concretada de Oficina (Bv. Chacabuco 800) a Mariana Gómez', '2026-11-10 15:31:10', '2026-11-10 15:31:10'),
+(11, 3, NULL, NULL, 'INGRESO', 'Comisión Inmobiliaria', 12345.00, '2026-11-11', NULL, '2026-11-11 11:36:57', '2026-11-11 11:36:57'),
+(12, 1, 5, NULL, 'INGRESO', 'Comisión por Venta', 13500.00, '2026-11-11', 'Comisión por venta concretada de Penthouse (Puerto Madero - Torres del Parque 500) a Yazmin Ortiz', '2026-11-11 11:39:01', '2026-11-11 11:39:01');
 
 -- --------------------------------------------------------
 
@@ -191,7 +195,7 @@ CREATE TABLE IF NOT EXISTS `recibos` (
   PRIMARY KEY (`id`),
   KEY `fk_recibos_inmuebles` (`id_inmueble`),
   KEY `fk_recibos_clientes` (`id_cliente`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 --
 -- Volcado de datos para la tabla `recibos`
@@ -201,9 +205,9 @@ INSERT INTO `recibos` (`id`, `numero_recibo`, `id_inmueble`, `id_cliente`, `fech
 (1, 'REC-2026-001', 1, 13, '2026-10-01', 'Octubre 2026', 155000.00, 'COBRADO', '2026-10-05', 'Cobro abonado por transferencia bancaria.', '2026-11-08 03:18:52', '2026-11-08 03:18:52'),
 (2, 'REC-2026-002', 2, 14, '2026-10-01', 'Octubre 2026', 105000.00, 'COBRADO', '2026-10-08', 'Pago en término.', '2026-11-08 03:18:52', '2026-11-08 03:18:52'),
 (3, 'REC-2026-003', 1, 13, '2026-11-01', 'Noviembre 2026', 158000.00, 'COBRADO', '2026-11-04', 'Abonado con Santander Débito.', '2026-11-08 03:18:52', '2026-11-08 03:18:52'),
-(4, 'REC-2026-004', 2, 14, '2026-11-01', 'Noviembre 2026', 105000.00, 'PENDIENTE', NULL, 'Vencimiento el 10/11.', '2026-11-08 03:18:52', '2026-11-08 03:18:52'),
+(4, 'REC-2026-004', 2, 14, '2026-11-01', 'Noviembre 2026', 105000.00, 'COBRADO', '2026-11-10', 'Vencimiento el 10/11.', '2026-11-08 03:18:52', '2026-11-10 15:02:40'),
 (5, 'REC-2026-005', 3, 15, '2026-11-01', 'Noviembre 2026', 245000.00, 'PENDIENTE', NULL, 'Locación comercial.', '2026-11-08 03:18:52', '2026-11-08 03:18:52'),
-(6, 'REC-2026-006', 4, 16, '2026-11-01', 'Noviembre 2026', 360000.00, 'PENDIENTE', NULL, 'Aguardando confirmación de transferencia.', '2026-11-08 03:18:52', '2026-11-08 03:18:52');
+(8, 'REC-2026-359', 6, 14, '2026-11-10', 'Noviembre 2026', 165000.00, 'PENDIENTE', NULL, 'Primer recibo de locación para Mariana Gómez', '2026-11-10 16:08:08', '2026-11-10 16:08:08');
 
 -- --------------------------------------------------------
 
@@ -232,7 +236,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   `updatedAt` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
 
 --
 -- Volcado de datos para la tabla `usuarios`

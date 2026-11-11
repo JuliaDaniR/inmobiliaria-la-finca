@@ -20,9 +20,9 @@ export default function RutaProtegida({
     return <Navigate to="/login" replace/>;
   }
 
-  // Si el rol no esta dentro de los permitidos redirigir al dashboard
+  // Si el rol no esta dentro de los permitidos redirigir a su panel correspondiente
   if(rolesPermitidos && !rolesPermitidos.includes(user.rol)){
-    return <Navigate to="/" replace/>
+    return <Navigate to={user.rol === "SECRETARIO" ? "/admin" : "/portal"} replace/>;
   }
 
   // Si esta autenticado y tiene rol permitido 

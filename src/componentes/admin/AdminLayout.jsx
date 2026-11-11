@@ -6,8 +6,11 @@ import { getRecibos } from "../../services/recibos.service";
 import { getInmuebles } from "../../services/inmuebles.service"; 
 
 export default function AdminLayout() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Estado para el modal de confirmación de salida
+  const [mostrarConfirmacionSalir, setMostrarConfirmacionSalir] = useState(false);
 
   // Estado para el modo oscuro
   const [darkMode, setDarkMode] = useState(() => {
@@ -37,11 +40,30 @@ export default function AdminLayout() {
         const pendientes = recibos.filter((r) => r.estado === "PENDIENTE");
 
         const inmuebles = Array.isArray(dataInmuebles) ? dataInmuebles : dataInmuebles?.inmuebles || [];
+        const pendientesRevision = inmuebles.filter((i) => i.estado === "PENDIENTE");
         const reservados = inmuebles.filter((i) => i.estado === "RESERVADO");
 
         const listaAlertas = [];
 
-        // 1. Alertas individuales para cada propiedad reservada (CU-19 / CU-22)
+        // 1. Alertas de propiedades pendientes de revisión/aprobación (CU-20 / CU-25)
+        pendientesRevision.forEach((inm) => {
+          const clienteNom = inm.cliente_nombre
+            ? `${inm.cliente_nombre} ${inm.cliente_apellido}`
+            : "Cliente";
+
+          listaAlertas.push({
+            id: `revision-${inm.id}`,
+            titulo: `Propiedad para Revisión: ${inm.direccion}`,
+            detalle: `${clienteNom} publicó/modificó ${inm.tipo_inmueble} ($${Number(
+              inm.precio
+            ).toLocaleString("es-AR")} USD). Requiere aprobación.`,
+            ruta: "/admin/inmuebles",
+            tipo: "urgente",
+            tiempo: "Pendiente revisión",
+          });
+        });
+
+        // 2. Alertas individuales para cada propiedad reservada (CU-19 / CU-22)
         reservados.forEach((inm) => {
           const clienteNom = inm.cliente_nombre
             ? `${inm.cliente_nombre} ${inm.cliente_apellido}`
@@ -61,35 +83,17 @@ export default function AdminLayout() {
           });
         });
 
-        // 2. Alerta de Recibos Pendientes
+        // 3. Alerta de Recibos Pendientes de cobro
         if (pendientes.length > 0) {
           listaAlertas.push({
             id: "recibos",
-            titulo: "Recibos Pendientes",
-            detalle: `Hay ${pendientes.length} recibos pendientes de cobro este mes.`,
+            titulo: "Recibos Pendientes de Cobro",
+            detalle: `Hay ${pendientes.length} recibo(s) con cobro pendiente este mes.`,
             ruta: "/admin/recibos",
             tipo: "urgente",
             tiempo: "Atención requerida",
           });
         }
-
-        listaAlertas.push({
-          id: "gestion",
-          titulo: "Gestión de Propiedades",
-          detalle: "Catálogo sincronizado y listo para revisiones o nuevos ingresos.",
-          ruta: "/admin/inmuebles",
-          tipo: "info",
-          tiempo: "Sistema",
-        });
-
-        listaAlertas.push({
-          id: "bancos",
-          titulo: "Movimientos Bancarios",
-          detalle: "Cuentas Santander y Galicia conciliadas recientemente.",
-          ruta: "/admin/movimientos",
-          tipo: "exito",
-          tiempo: "Hoy",
-        });
 
         setNotificaciones(listaAlertas);
       })
@@ -325,6 +329,18 @@ export default function AdminLayout() {
                   </span>
                 )}
               </div>
+
+              {/* Botón Salir */}
+              <button
+                type="button"
+                onClick={() => setMostrarConfirmacionSalir(true)}
+                className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors cursor-pointer"
+                title="Cerrar sesión"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
             </div>
           </div>
         </header>
@@ -333,6 +349,50 @@ export default function AdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Modal de confirmación de cierre de sesión */}
+      {mostrarConfirmacionSalir && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-xl text-red-600 dark:text-red-400">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  ¿Cerrar Sesión?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  ¿Estás seguro de que deseas salir del Panel de Control?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setMostrarConfirmacionSalir(false)}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMostrarConfirmacionSalir(false);
+                  logout();
+                  navigate("/login");
+                }}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-sm transition-colors"
+              >
+                Sí, Salir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

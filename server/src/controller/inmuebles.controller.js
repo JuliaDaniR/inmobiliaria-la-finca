@@ -179,9 +179,34 @@ export const resolverOperacionInmueble = async (req, res) => {
         [comisionVenta, cuenta]
       );
 
+      // 3. Emitir automáticamente recibo oficial de Seña de Reserva / Boleto de Compraventa
+      let reciboGenerado = "";
+      if (inm.id_usuario) {
+        reciboGenerado = `REC-VTA-${Math.floor(1000 + Math.random() * 9000)}`;
+        const senaMonto = Math.round(Number(inm.precio) * 0.05); // 5% de seña / anticipo de reserva
+        const [recRes] = await connection.query(
+          `INSERT INTO recibos (numero_recibo, id_inmueble, id_cliente, fecha_emision, periodo, total, estado, observaciones)
+           VALUES (?, ?, ?, ?, 'Operación Venta', ?, 'COBRADO', ?)`,
+          [
+            reciboGenerado,
+            id,
+            inm.id_usuario,
+            hoy,
+            senaMonto,
+            `Seña de Reserva y Boleto de Compraventa para ${clienteNom} - Inmueble ${inm.direccion}`,
+          ]
+        );
+
+        await connection.query(
+          `INSERT INTO conceptos_recibo (id_recibo, concepto, monto, es_obligatorio)
+           VALUES (?, 'Seña de Reserva y Boleto de Compraventa', ?, 1)`,
+          [recRes.insertId, senaMonto]
+        );
+      }
+
       await connection.commit();
       return res.status(200).json({
-        message: `¡Venta de "${inm.direccion}" confirmada exitosamente! Se acreditó la comisión de $${comisionVenta.toLocaleString("es-AR")} USD en la cuenta bancaria.`,
+        message: `¡Venta de "${inm.direccion}" confirmada exitosamente! Se emitió el recibo oficial de Seña para ${clienteNom} y se acreditó la comisión de $${comisionVenta.toLocaleString("es-AR")} USD en la cuenta bancaria.`,
         estado: "VENDIDO",
       });
     } else if (accion === "CONFIRMAR_ALQUILER") {
@@ -220,6 +245,30 @@ export const resolverOperacionInmueble = async (req, res) => {
       return res.status(200).json({
         message: `¡Alquiler de "${inm.direccion}" confirmado! Se emitió el recibo mensual para ${clienteNom}.`,
         estado: "ALQUILADO",
+      });
+    } else if (accion === "APROBAR_PUBLICACION") {
+      // Aprobar publicación enviada por cliente: pasa a DISPONIBLE en el catálogo público
+      await connection.query(
+        "UPDATE inmuebles SET estado = 'DISPONIBLE' WHERE id = ?",
+        [id]
+      );
+
+      await connection.commit();
+      return res.status(200).json({
+        message: `¡La publicación de "${inm.direccion}" fue aprobada y ahora está DISPONIBLE en el catálogo público!`,
+        estado: "DISPONIBLE",
+      });
+    } else if (accion === "RECHAZAR_PUBLICACION") {
+      // Rechazar publicación
+      await connection.query(
+        "UPDATE inmuebles SET estado = 'RECHAZADO' WHERE id = ?",
+        [id]
+      );
+
+      await connection.commit();
+      return res.status(200).json({
+        message: `La publicación de "${inm.direccion}" fue rechazada por el administrador.`,
+        estado: "RECHAZADO",
       });
     } else if (accion === "RECHAZAR") {
       // Volver a DISPONIBLE y remover la reserva
@@ -304,6 +353,10 @@ export const crearInmueble = async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
+    const esCliente = req.usuarioAutenticado.rol === "CLIENTE";
+    // Las publicaciones enviadas por clientes quedan en revisión (PENDIENTE) del administrador
+    const estadoFinal = esCliente ? "PENDIENTE" : (estado || "DISPONIBLE");
+
     const values = [
       req.usuarioAutenticado.id,
       tipo_inmueble.trim(),
@@ -311,7 +364,7 @@ export const crearInmueble = async (req, res) => {
       direccion.trim(),
       localidad || null,
       provincia || null,
-      estado || "DISPONIBLE",
+      estadoFinal,
       rutaFoto,
       observaciones || null,
     ];
@@ -319,8 +372,11 @@ export const crearInmueble = async (req, res) => {
     const [resultado] = await pool.query(sql, values);
 
     return res.status(201).json({
-      message: "Inmueble creado exitosamente.",
+      message: esCliente
+        ? "Propiedad enviada a revisión del administrador exitosamente."
+        : "Inmueble creado exitosamente.",
       id: resultado.insertId,
+      estado: estadoFinal,
     });
   } catch (error) {
     console.error("Error al crear el inmueble:", error);
@@ -336,40 +392,17 @@ export const crearInmueble = async (req, res) => {
    ============================================================================ */
 
 export const editarInmueble = async (req, res) => {
-  if (req.usuarioAutenticado?.rol !== "SECRETARIO") {
-    return res.status(403).json({
-      message: "No tienes permisos para editar inmuebles.",
+  if (!req.usuarioAutenticado) {
+    return res.status(401).json({
+      message: "Debes iniciar sesión para editar un inmueble.",
     });
   }
 
   const { id } = req.params;
 
-  const {
-    tipo_inmueble,
-    precio,
-    direccion,
-    localidad,
-    provincia,
-    estado,
-    fotos,
-    observaciones,
-  } = req.body;
-
-  if (!tipo_inmueble?.trim() || !direccion?.trim()) {
-    return res.status(400).json({
-      message: "El tipo de inmueble y la dirección son obligatorios.",
-    });
-  }
-
-  if (precio === undefined || precio === "" || !Number.isFinite(Number(precio)) || Number(precio) < 0) {
-    return res.status(400).json({
-      message: "El precio debe ser un número válido y no negativo.",
-    });
-  }
-
   try {
     const [inmuebles] = await pool.query(
-      "SELECT id, fotos FROM inmuebles WHERE id = ?",
+      "SELECT id, fotos, id_usuario, estado FROM inmuebles WHERE id = ?",
       [id]
     );
 
@@ -379,14 +412,55 @@ export const editarInmueble = async (req, res) => {
       });
     }
 
+    const inmuebleExistente = inmuebles[0];
+    const esAdmin = req.usuarioAutenticado.rol === "SECRETARIO";
+    const esDuenio =
+      inmuebleExistente.id_usuario &&
+      Number(inmuebleExistente.id_usuario) === Number(req.usuarioAutenticado.id);
+
+    // Solo el administrador o el cliente propietario pueden editar
+    if (!esAdmin && !esDuenio) {
+      return res.status(403).json({
+        message: "No tienes permisos para editar este inmueble.",
+      });
+    }
+
+    const {
+      tipo_inmueble,
+      precio,
+      direccion,
+      localidad,
+      provincia,
+      estado,
+      fotos,
+      observaciones,
+    } = req.body;
+
+    if (!tipo_inmueble?.trim() || !direccion?.trim()) {
+      return res.status(400).json({
+        message: "El tipo de inmueble y la dirección son obligatorios.",
+      });
+    }
+
+    if (precio === undefined || precio === "" || !Number.isFinite(Number(precio)) || Number(precio) < 0) {
+      return res.status(400).json({
+        message: "El precio debe ser un número válido y no negativo.",
+      });
+    }
+
     // Si no se sube otra imagen, se conserva la fotografía actual.
-    let rutaFoto = inmuebles[0].fotos;
+    let rutaFoto = inmuebleExistente.fotos;
 
     if (req.file) {
       rutaFoto = `/uploads/${req.file.filename}`;
     } else if (fotos !== undefined) {
       rutaFoto = fotos || null;
     }
+
+    // Si quien edita es un CLIENTE, la propiedad pasa a PENDIENTE para revisión del admin
+    const estadoFinal = esAdmin
+      ? (estado || inmuebleExistente.estado || "DISPONIBLE")
+      : "PENDIENTE";
 
     const sql = `
       UPDATE inmuebles
@@ -408,7 +482,7 @@ export const editarInmueble = async (req, res) => {
       direccion.trim(),
       localidad || null,
       provincia || null,
-      estado || "DISPONIBLE",
+      estadoFinal,
       rutaFoto,
       observaciones || null,
       id,
@@ -417,7 +491,10 @@ export const editarInmueble = async (req, res) => {
     await pool.query(sql, values);
 
     return res.status(200).json({
-      message: "Inmueble actualizado exitosamente.",
+      message: esAdmin
+        ? "Inmueble actualizado exitosamente."
+        : "Inmueble actualizado y enviado a revisión del administrador.",
+      estado: estadoFinal,
     });
   } catch (error) {
     console.error("Error al editar el inmueble:", error);

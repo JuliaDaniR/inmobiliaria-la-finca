@@ -16,6 +16,7 @@ export default function Clientes() {
   const [previewFoto, setPreviewFoto] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [mensajeAlerta, setMensajeAlerta] = useState(null);
+  const [dialogoConfirmacion, setDialogoConfirmacion] = useState(null);
 
   const [formulario, setFormulario] = useState({
     nombre: "",
@@ -187,26 +188,28 @@ export default function Clientes() {
     }
   };
 
-  const handleEliminarCliente = async (cliente) => {
-    const confirmar = window.confirm(
-      `¿Estás seguro de que deseas eliminar al cliente ${cliente.nombre} ${cliente.apellido}?`
-    );
-
-    if (!confirmar) return;
-
-    try {
-      await eliminarCliente(cliente.id);
-      setMensajeAlerta({
-        tipo: "exito",
-        texto: "Cliente eliminado correctamente.",
-      });
-      cargarClientes();
-    } catch (error) {
-      setMensajeAlerta({
-        tipo: "error",
-        texto: error.message || "Error al eliminar el cliente.",
-      });
-    }
+  const handleEliminarCliente = (cliente) => {
+    setDialogoConfirmacion({
+      titulo: "¿Eliminar Cliente?",
+      mensaje: `¿Estás seguro de que deseas eliminar permanentemente a ${cliente.nombre} ${cliente.apellido}?`,
+      onConfirmar: async () => {
+        try {
+          await eliminarCliente(cliente.id);
+          setMensajeAlerta({
+            tipo: "exito",
+            texto: "Cliente eliminado correctamente.",
+          });
+          cargarClientes();
+        } catch (error) {
+          setMensajeAlerta({
+            tipo: "error",
+            texto: error.response?.data?.message || error.message || "Error al eliminar el cliente.",
+          });
+        } finally {
+          setDialogoConfirmacion(null);
+        }
+      },
+    });
   };
 
   // Filtrado de clientes por búsqueda
@@ -725,14 +728,14 @@ export default function Clientes() {
                   <button
                     type="button"
                     onClick={() => abrirEditarCliente(cliente)}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#826229]/10 hover:bg-[#826229]/20 text-[#826229] dark:text-[#a5813f] transition"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#826229]/10 hover:bg-[#826229]/20 text-[#826229] dark:text-[#a5813f] transition cursor-pointer"
                   >
                     Editar
                   </button>
                   <button
                     type="button"
                     onClick={() => handleEliminarCliente(cliente)}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-600 dark:text-red-300 transition"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-900/50 text-red-600 dark:text-red-300 transition cursor-pointer"
                   >
                     Eliminar
                   </button>
@@ -740,6 +743,43 @@ export default function Clientes() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR CLIENTE */}
+      {dialogoConfirmacion && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 rounded-xl text-red-600 dark:text-red-400">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                {dialogoConfirmacion.titulo}
+              </h3>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              {dialogoConfirmacion.mensaje}
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDialogoConfirmacion(null)}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={dialogoConfirmacion.onConfirmar}
+                className="flex-1 py-2 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-sm"
+              >
+                Sí, Eliminar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

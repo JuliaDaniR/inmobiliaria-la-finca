@@ -102,29 +102,45 @@ function Inmuebles() {
   const pedirConfirmacionOperacion = (inmueble, accion) => {
     const esVenta = accion === "CONFIRMAR_VENTA";
     const esAlquiler = accion === "CONFIRMAR_ALQUILER";
+    const esAprobar = accion === "APROBAR_PUBLICACION";
+    const esRechazarPub = accion === "RECHAZAR_PUBLICACION";
+
+    let titulo;
+    let mensaje;
+    let textoBoton;
+    let colorBoton = "bg-emerald-600 hover:bg-emerald-700";
+
+    if (esVenta) {
+      titulo = "¿Confirmar Venta del Inmueble?";
+      mensaje = `La propiedad en "${inmueble.direccion}" pasará a estado VENDIDO, se emitirá automáticamente el recibo oficial de seña para el comprador y se acreditará la comisión del 3% ($${Math.round(
+        Number(inmueble.precio) * 0.03
+      ).toLocaleString("es-AR")} USD) en la cuenta bancaria.`;
+      textoBoton = "Confirmar Venta";
+    } else if (esAlquiler) {
+      titulo = "¿Confirmar Alquiler del Inmueble?";
+      mensaje = `La propiedad en "${inmueble.direccion}" pasará a estado ALQUILADO y se emitirá automáticamente el recibo de locación mensual para el inquilino.`;
+      textoBoton = "Confirmar Alquiler";
+    } else if (esAprobar) {
+      titulo = "¿Aprobar Publicación del Inmueble?";
+      mensaje = `La propiedad en "${inmueble.direccion}" presentada por el cliente quedará aprobada y visible como DISPONIBLE en el catálogo general.`;
+      textoBoton = "Aprobar y Publicar";
+    } else if (esRechazarPub) {
+      titulo = "¿Rechazar Publicación?";
+      mensaje = `La propiedad "${inmueble.direccion}" quedará en estado RECHAZADO y no se mostrará en el catálogo general.`;
+      textoBoton = "Rechazar Publicación";
+      colorBoton = "bg-red-600 hover:bg-red-700";
+    } else {
+      titulo = "¿Rechazar Solicitud de Reserva?";
+      mensaje = `La reserva quedará cancelada y "${inmueble.direccion}" volverá a estar DISPONIBLE en el catálogo.`;
+      textoBoton = "Rechazar Reserva";
+      colorBoton = "bg-red-600 hover:bg-red-700";
+    }
 
     setDialogoConfirmacion({
-      titulo: esVenta
-        ? "¿Confirmar Venta del Inmueble?"
-        : esAlquiler
-        ? "¿Confirmar Alquiler del Inmueble?"
-        : "¿Rechazar Solicitud de Reserva?",
-      mensaje: esVenta
-        ? `La propiedad en "${inmueble.direccion}" pasará a estado VENDIDO y se acreditará la comisión del 3% ($${Math.round(
-            Number(inmueble.precio) * 0.03
-          ).toLocaleString("es-AR")} USD) en la cuenta bancaria de La Finca.`
-        : esAlquiler
-        ? `La propiedad en "${inmueble.direccion}" pasará a estado ALQUILADO y se emitirá automáticamente el recibo de locación mensual para el inquilino.`
-        : `La reserva quedará cancelada y "${inmueble.direccion}" volverá a estar DISPONIBLE en el catálogo.`,
-      textoBoton: esVenta
-        ? "Confirmar Venta"
-        : esAlquiler
-        ? "Confirmar Alquiler"
-        : "Rechazar Reserva",
-      colorBoton:
-        esVenta || esAlquiler
-          ? "bg-emerald-600 hover:bg-emerald-700"
-          : "bg-red-600 hover:bg-red-700",
+      titulo,
+      mensaje,
+      textoBoton,
+      colorBoton,
       onConfirmar: async () => {
         try {
           const resp = await resolverOperacionInmueble(inmueble.id, { accion });
@@ -722,144 +738,190 @@ function Inmuebles() {
 
             <article
               key={inmueble.id}
-              className="overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300 hover:border-[#826229] hover:shadow-lg hover:-translate-y-1"
+              className="overflow-hidden bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300 hover:border-[#826229] hover:shadow-lg flex flex-col justify-between h-full"
             >
-
-              {/* IMAGEN */}
-              {inmueble.fotos ? (
-                <img
-                  src={obtenerUrlFoto(inmueble.fotos)}
-                  alt={inmueble.tipo_inmueble}
-                  className="w-full h-52 object-cover"
-                />
-              ) : (
-                <div className="w-full h-52 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                  Sin fotografía
-                </div>
-              )}
-
-              {/* INFORMACIÓN */}
-              <div className="p-5 space-y-3">
-
-                <div className="flex items-center justify-between gap-2">
-
-                  <h3 className="font-bold text-lg text-slate-800 dark:text-white">
-                    {inmueble.tipo_inmueble}
-                  </h3>
-
-                  <span
-                    className={`text-xs font-bold px-3 py-1 rounded-full uppercase ${
-                      inmueble.estado === "DISPONIBLE"
-                        ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-                        : inmueble.estado === "RESERVADO"
-                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 ring-2 ring-amber-400/50"
-                        : inmueble.estado === "ALQUILADO"
-                        ? "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
-                        : "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300"
-                    }`}
-                  >
-                    {inmueble.estado || "DISPONIBLE"}
-                  </span>
-
-                </div>
-
-                <p className="text-xl font-bold" style={{ color: "#826229" }}>
-                  {formatearPrecio(inmueble.precio)}
-                </p>
-
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  <strong>Dirección:</strong> {inmueble.direccion}
-                </p>
-
-                {(inmueble.localidad || inmueble.provincia) && (
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    {[inmueble.localidad, inmueble.provincia]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </p>
-                )}
-
-                {/* BLOQUE DE SOLICITUD / RESERVA ACTIVA (CU-19 / CU-22) */}
-                {inmueble.estado === "RESERVADO" && (
-                  <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80 text-xs text-amber-950 dark:text-amber-200 space-y-2">
-                    <div className="flex items-center justify-between border-b border-amber-200/50 dark:border-amber-800/50 pb-1.5">
-                      <span className="font-bold flex items-center gap-1.5">
-                        <span>🔔</span>
-                        <span>
-                          {inmueble.observaciones?.toUpperCase().includes("COMPRA")
-                            ? "PEDIDO DE COMPRA (CU-22)"
-                            : "PEDIDO DE ALQUILER (CU-19)"}
-                        </span>
-                      </span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900/60 font-bold">
-                        RESERVADO
-                      </span>
-                    </div>
-
-                    <div className="space-y-0.5 text-slate-700 dark:text-slate-300">
-                      <p>
-                        <strong className="text-slate-900 dark:text-white">Cliente Solicitante:</strong>{" "}
-                        {inmueble.cliente_nombre
-                          ? `${inmueble.cliente_nombre} ${inmueble.cliente_apellido}`
-                          : "Cliente registrado"}
-                      </p>
-                      {inmueble.cliente_email && (
-                        <p className="text-[11px] text-slate-500">
-                          <strong>Email:</strong> {inmueble.cliente_email}
-                        </p>
-                      )}
-                      {inmueble.cliente_telefono && (
-                        <p className="text-[11px] text-slate-500">
-                          <strong>Tel:</strong> {inmueble.cliente_telefono}
-                        </p>
-                      )}
-                      {inmueble.cliente_dni && (
-                        <p className="text-[11px] text-slate-500">
-                          <strong>DNI:</strong> {inmueble.cliente_dni}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Botones para resolver la operación */}
-                    <div className="pt-2 flex gap-2">
-                      <button
-                        onClick={() =>
-                          pedirConfirmacionOperacion(
-                            inmueble,
-                            inmueble.observaciones?.toUpperCase().includes("COMPRA")
-                              ? "CONFIRMAR_VENTA"
-                              : "CONFIRMAR_ALQUILER"
-                          )
-                        }
-                        className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer text-center"
-                      >
-                        {inmueble.observaciones?.toUpperCase().includes("COMPRA")
-                          ? "Confirmar Venta"
-                          : "Confirmar Alquiler"}
-                      </button>
-
-                      <button
-                        onClick={() => pedirConfirmacionOperacion(inmueble, "RECHAZAR")}
-                        className="py-1.5 px-3 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors cursor-pointer"
-                      >
-                        Rechazar
-                      </button>
-                    </div>
+              <div>
+                {/* IMAGEN */}
+                {inmueble.fotos ? (
+                  <img
+                    src={obtenerUrlFoto(inmueble.fotos)}
+                    alt={inmueble.tipo_inmueble}
+                    className="w-full h-52 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-52 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                    Sin fotografía
                   </div>
                 )}
 
-                {inmueble.observaciones && (
-                  <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-3">
-                    {inmueble.observaciones}
+                {/* INFORMACIÓN */}
+                <div className="p-5 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                      {inmueble.tipo_inmueble}
+                    </h3>
+
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-full uppercase ${
+                        inmueble.estado === "DISPONIBLE"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          : inmueble.estado === "PENDIENTE"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300 ring-2 ring-blue-400/50"
+                          : inmueble.estado === "RESERVADO"
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 ring-2 ring-amber-400/50"
+                          : inmueble.estado === "ALQUILADO"
+                          ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300"
+                          : "bg-purple-100 text-purple-800 dark:bg-purple-950/40 dark:text-purple-300"
+                      }`}
+                    >
+                      {inmueble.estado || "DISPONIBLE"}
+                    </span>
+                  </div>
+
+                  <p className="text-xl font-bold" style={{ color: "#826229" }}>
+                    {formatearPrecio(inmueble.precio)}
                   </p>
-                )}
 
-                {/* ACCIONES */}
-                <div className="flex gap-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    <strong>Dirección:</strong> {inmueble.direccion}
+                  </p>
 
+                  {(inmueble.localidad || inmueble.provincia) && (
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      {[inmueble.localidad, inmueble.provincia]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </p>
+                  )}
+
+                  {/* BLOQUE DE SOLICITUD / RESERVA ACTIVA (CU-19 / CU-22) */}
+                  {inmueble.estado === "RESERVADO" && (
+                    <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/80 text-xs text-amber-950 dark:text-amber-200 space-y-2">
+                      <div className="flex items-center justify-between border-b border-amber-200/50 dark:border-amber-800/50 pb-1.5">
+                        <span className="font-bold flex items-center gap-1.5">
+                          <span>🔔</span>
+                          <span>
+                            {inmueble.observaciones?.toUpperCase().includes("COMPRA")
+                              ? "PEDIDO DE COMPRA (CU-22)"
+                              : "PEDIDO DE ALQUILER (CU-19)"}
+                          </span>
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-200 dark:bg-amber-900/60 font-bold">
+                          RESERVADO
+                        </span>
+                      </div>
+
+                      <div className="space-y-0.5 text-slate-700 dark:text-slate-300">
+                        <p>
+                          <strong className="text-slate-900 dark:text-white">Cliente Solicitante:</strong>{" "}
+                          {inmueble.cliente_nombre
+                            ? `${inmueble.cliente_nombre} ${inmueble.cliente_apellido}`
+                            : "Cliente registrado"}
+                        </p>
+                        {inmueble.cliente_email && (
+                          <p className="text-[11px] text-slate-500">
+                            <strong>Email:</strong> {inmueble.cliente_email}
+                          </p>
+                        )}
+                        {inmueble.cliente_telefono && (
+                          <p className="text-[11px] text-slate-500">
+                            <strong>Tel:</strong> {inmueble.cliente_telefono}
+                          </p>
+                        )}
+                        {inmueble.cliente_dni && (
+                          <p className="text-[11px] text-slate-500">
+                            <strong>DNI:</strong> {inmueble.cliente_dni}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Botones para resolver la operación */}
+                      <div className="pt-2 flex gap-2">
+                        <button
+                          onClick={() =>
+                            pedirConfirmacionOperacion(
+                              inmueble,
+                              inmueble.observaciones?.toUpperCase().includes("COMPRA")
+                                ? "CONFIRMAR_VENTA"
+                                : "CONFIRMAR_ALQUILER"
+                            )
+                          }
+                          className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer text-center"
+                        >
+                          {inmueble.observaciones?.toUpperCase().includes("COMPRA")
+                            ? "Confirmar Venta"
+                            : "Confirmar Alquiler"}
+                        </button>
+
+                        <button
+                          onClick={() => pedirConfirmacionOperacion(inmueble, "RECHAZAR")}
+                          className="py-1.5 px-3 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* BLOQUE DE REVISIÓN PARA PUBLICACIONES DE CLIENTES (CU-20 / CU-25) */}
+                  {inmueble.estado === "PENDIENTE" && (
+                    <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/80 text-xs text-blue-950 dark:text-blue-200 space-y-2">
+                      <div className="flex items-center justify-between border-b border-blue-200/50 dark:border-blue-800/50 pb-1.5">
+                        <span className="font-bold flex items-center gap-1.5">
+                          <span>📋</span>
+                          <span>PUBLICACIÓN EN REVISIÓN</span>
+                        </span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-200 dark:bg-blue-900/60 font-bold">
+                          PENDIENTE
+                        </span>
+                      </div>
+
+                      <div className="space-y-0.5 text-slate-700 dark:text-slate-300">
+                        <p>
+                          <strong className="text-slate-900 dark:text-white">Propietario / Cliente:</strong>{" "}
+                          {inmueble.cliente_nombre
+                            ? `${inmueble.cliente_nombre} ${inmueble.cliente_apellido}`
+                            : "Cliente registrado"}
+                        </p>
+                        {inmueble.cliente_email && (
+                          <p className="text-[11px] text-slate-500">
+                            <strong>Email:</strong> {inmueble.cliente_email}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="pt-2 flex gap-2">
+                        <button
+                          onClick={() => pedirConfirmacionOperacion(inmueble, "APROBAR_PUBLICACION")}
+                          className="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer text-center"
+                        >
+                          Aprobar Publicación
+                        </button>
+
+                        <button
+                          onClick={() => pedirConfirmacionOperacion(inmueble, "RECHAZAR_PUBLICACION")}
+                          className="py-1.5 px-3 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {inmueble.observaciones && (
+                    <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-3">
+                      {inmueble.observaciones}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* ACCIONES ALINEADAS ABAJO */}
+              <div className="p-5 pt-0">
+                <div className="flex gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
                   <button
                     onClick={() => abrirFormularioEditar(inmueble)}
-                    className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                    className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 cursor-pointer text-center"
                     style={{ backgroundColor: "#826229" }}
                   >
                     Editar
@@ -867,13 +929,11 @@ function Inmuebles() {
 
                   <button
                     onClick={() => pedirConfirmacionEliminar(inmueble)}
-                    className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-red-100 text-red-700 transition-all duration-300 hover:bg-red-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                    className="flex-1 px-3 py-2 rounded-lg text-sm font-semibold bg-red-100 dark:bg-red-950/40 text-red-700 dark:text-red-400 transition-all duration-300 hover:bg-red-200 dark:hover:bg-red-900/60 hover:shadow-md hover:-translate-y-0.5 cursor-pointer text-center"
                   >
                     Eliminar
                   </button>
-
                 </div>
-
               </div>
             </article>
 
