@@ -2,6 +2,8 @@ import { Router } from "express";
 import {
   obtenerCuentas,
   crearCuenta,
+  actualizarCuenta,
+  eliminarCuenta,
   obtenerMovimientos,
   registrarMovimiento,
   obtenerResumenFinanciero,
@@ -18,6 +20,8 @@ const router = Router();
 // 1. Cuentas bancarias
 router.get("/cuentas", verificarTokenAcceso, obtenerCuentas);
 router.post("/cuentas", verificarTokenAcceso, crearCuenta);
+router.put("/cuentas/:id", verificarTokenAcceso, actualizarCuenta);
+router.delete("/cuentas/:id", verificarTokenAcceso, eliminarCuenta);
 
 // 2. Movimientos bancarios (ingresos y gastos)
 // Admite filtros: ?tipo=INGRESO&id_cuenta=1&fecha_desde=2026-01-01&fecha_hasta=2026-12-31
