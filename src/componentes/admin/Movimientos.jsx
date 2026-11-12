@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import {
   getCuentasBancarias,
   crearCuentaBancaria,
+  actualizarCuentaBancaria,
+  eliminarCuentaBancaria,
   getMovimientos,
   registrarMovimiento,
   eliminarMovimiento,
@@ -22,6 +24,7 @@ export default function Movimientos() {
   // Modales y formularios
   const [mostrarFormMov, setMostrarFormMov] = useState(false);
   const [mostrarFormCuenta, setMostrarFormCuenta] = useState(false);
+  const [cuentaEditando, setCuentaEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
   const [dialogoConfirmacion, setDialogoConfirmacion] = useState(null);
@@ -137,14 +140,52 @@ export default function Movimientos() {
     }
   };
 
-  // Submit de Nueva Cuenta
+  // Abrir modal para crear cuenta
+  const handleAbrirCrearCuenta = () => {
+    setCuentaEditando(null);
+    setFormCuenta({
+      banco: "",
+      numero_cuenta: "",
+      cbu_alias: "",
+      titular: "Inmobiliaria La Finca S.A.",
+      tipo_cuenta: "Cuenta Corriente",
+      saldo: "0.00",
+    });
+    setMostrarFormCuenta(true);
+  };
+
+  // Abrir modal para editar cuenta
+  const handleAbrirEditarCuenta = (cuenta) => {
+    setCuentaEditando(cuenta);
+    setFormCuenta({
+      banco: cuenta.banco || "",
+      numero_cuenta: cuenta.numero_cuenta || "",
+      cbu_alias: cuenta.cbu_alias || "",
+      titular: cuenta.titular || "Inmobiliaria La Finca S.A.",
+      tipo_cuenta: cuenta.tipo_cuenta || "Cuenta Corriente",
+      saldo: cuenta.saldo !== undefined && cuenta.saldo !== null ? String(cuenta.saldo) : "0.00",
+    });
+    setMostrarFormCuenta(true);
+  };
+
+  // Submit de Cuenta (Alta o Modificación)
   const handleSubmitCuenta = async (e) => {
     e.preventDefault();
     setGuardando(true);
+    setMensaje(null);
     try {
-      await crearCuentaBancaria(formCuenta);
-      setMensaje({ tipo: "exito", texto: "Nueva cuenta bancaria dada de alta." });
+      if (cuentaEditando) {
+        await actualizarCuentaBancaria(cuentaEditando.id, formCuenta);
+        setMensaje({
+          tipo: "exito",
+          texto: `Cuenta bancaria "${formCuenta.banco}" actualizada con éxito.`,
+        });
+      } else {
+        await crearCuentaBancaria(formCuenta);
+        setMensaje({ tipo: "exito", texto: "Nueva cuenta bancaria dada de alta con éxito." });
+      }
       setMostrarFormCuenta(false);
+      setCuentaEditando(null);
       setFormCuenta({
         banco: "",
         numero_cuenta: "",
@@ -157,11 +198,36 @@ export default function Movimientos() {
     } catch (err) {
       setMensaje({
         tipo: "error",
-        texto: err.response?.data?.message || err.message || "Error al dar de alta la cuenta.",
+        texto: err.response?.data?.message || err.message || "Error al guardar la cuenta bancaria.",
       });
     } finally {
       setGuardando(false);
     }
+  };
+
+  // Eliminar cuenta bancaria con diálogo de confirmación
+  const handleEliminarCuenta = (cuenta) => {
+    setDialogoConfirmacion({
+      titulo: "¿Eliminar Cuenta Bancaria?",
+      mensaje: `¿Estás seguro de que deseas eliminar la cuenta ${cuenta.banco} (${cuenta.numero_cuenta})? Recuerda que no debe registrar movimientos asociados.`,
+      onConfirmar: async () => {
+        try {
+          await eliminarCuentaBancaria(cuenta.id);
+          setMensaje({
+            tipo: "exito",
+            texto: `Cuenta bancaria "${cuenta.banco}" eliminada con éxito.`,
+          });
+          cargarDatos();
+        } catch (err) {
+          setMensaje({
+            tipo: "error",
+            texto: err.response?.data?.message || err.message || "Error al eliminar la cuenta bancaria.",
+          });
+        } finally {
+          setDialogoConfirmacion(null);
+        }
+      },
+    });
   };
 
   // Eliminar movimiento (revierte saldo) con diálogo modal personalizado
@@ -231,15 +297,15 @@ export default function Movimientos() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setMostrarFormCuenta(true)}
-            className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition"
+            onClick={handleAbrirCrearCuenta}
+            className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             + Nueva Cuenta
           </button>
           <button
             type="button"
             onClick={() => setMostrarFormMov(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#826229] hover:bg-[#6d511f] text-white text-xs font-semibold shadow-sm transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#826229] hover:bg-[#6d511f] text-white text-xs font-semibold shadow-sm transition cursor-pointer"
           >
             + Registrar Movimiento
           </button>
@@ -259,7 +325,7 @@ export default function Movimientos() {
           <button
             type="button"
             onClick={() => setMensaje(null)}
-            className="text-xs font-bold underline ml-4"
+            className="text-xs font-bold underline ml-4 cursor-pointer"
           >
             Cerrar
           </button>
@@ -273,12 +339,34 @@ export default function Movimientos() {
           return (
             <div
               key={c.id}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col justify-between"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm flex flex-col justify-between hover:border-[#826229]/40 transition-colors"
             >
               <div>
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                  <span>{c.tipo_cuenta}</span>
-                  <span className="font-mono">{c.numero_cuenta}</span>
+                  <span className="font-semibold text-slate-600 dark:text-slate-300">{c.tipo_cuenta}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono text-[11px] text-slate-500">{c.numero_cuenta}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleAbrirEditarCuenta(c)}
+                      className="p-1 rounded text-slate-400 hover:text-[#826229] hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                      title="Editar cuenta"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleEliminarCuenta(c)}
+                      className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition cursor-pointer"
+                      title="Eliminar cuenta"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
                   {c.banco}
@@ -423,7 +511,7 @@ export default function Movimientos() {
                   {cuentas.length === 0 && (
                     <button
                       type="button"
-                      onClick={() => setMostrarFormCuenta(true)}
+                      onClick={handleAbrirCrearCuenta}
                       className="text-[11px] font-bold text-[#826229] dark:text-[#C69B56] hover:underline cursor-pointer"
                     >
                       + Crear Cuenta
@@ -564,79 +652,138 @@ export default function Movimientos() {
       </div>
       )}
 
-      {/* MODAL CREAR CUENTA BANCARIA */}
+      {/* MODAL CREAR / EDITAR CUENTA BANCARIA */}
       {mostrarFormCuenta && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4">
-            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-              Dar de Alta Cuenta Bancaria
-            </h3>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+                {cuentaEditando ? "Editar Cuenta Bancaria" : "Dar de Alta Cuenta Bancaria"}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setMostrarFormCuenta(false);
+                  setCuentaEditando(null);
+                }}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
+                title="Cerrar"
+              >
+                ✕
+              </button>
+            </div>
 
             <form onSubmit={handleSubmitCuenta} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold mb-1">Nombre del Banco</label>
+                <label className="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  Nombre del Banco <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. Banco Galicia"
+                  placeholder="Ej. Banco Santander"
                   value={formCuenta.banco}
                   onChange={(e) => setFormCuenta({ ...formCuenta, banco: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1">Número de Cuenta</label>
+                <label className="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  Tipo de Cuenta
+                </label>
+                <select
+                  value={formCuenta.tipo_cuenta}
+                  onChange={(e) => setFormCuenta({ ...formCuenta, tipo_cuenta: e.target.value })}
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium"
+                >
+                  <option value="Cuenta Corriente">Cuenta Corriente</option>
+                  <option value="Caja de Ahorro">Caja de Ahorro</option>
+                  <option value="Cuenta en Dólares">Cuenta en Dólares</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  Número de Cuenta <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. CC-12345-02"
+                  placeholder="Ej. CC-084-382914/2"
                   value={formCuenta.numero_cuenta}
                   onChange={(e) =>
                     setFormCuenta({ ...formCuenta, numero_cuenta: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1">CBU / Alias</label>
+                <label className="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  CBU / Alias
+                </label>
                 <input
                   type="text"
-                  placeholder="LAFINCA.GALICIA"
+                  placeholder="FINCA.SANTANDER.PESOS"
                   value={formCuenta.cbu_alias}
                   onChange={(e) =>
                     setFormCuenta({ ...formCuenta, cbu_alias: e.target.value })
                   }
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold mb-1">Saldo Inicial ($)</label>
+                <label className="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  Titular de la Cuenta <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Inmobiliaria La Finca S.A."
+                  value={formCuenta.titular}
+                  onChange={(e) =>
+                    setFormCuenta({ ...formCuenta, titular: e.target.value })
+                  }
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold mb-1 text-slate-700 dark:text-slate-300">
+                  {cuentaEditando ? "Saldo Actual ($)" : "Saldo Inicial ($)"}
+                </label>
                 <input
                   type="number"
                   step="0.01"
                   value={formCuenta.saldo}
                   onChange={(e) => setFormCuenta({ ...formCuenta, saldo: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+                  className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-semibold"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
-                  onClick={() => setMostrarFormCuenta(false)}
-                  className="px-3 py-1.5 text-xs text-slate-500"
+                  onClick={() => {
+                    setMostrarFormCuenta(false);
+                    setCuentaEditando(null);
+                  }}
+                  className="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={guardando}
-                  className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#826229] text-white"
+                  className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-[#826229] hover:bg-[#6d511f] text-white disabled:opacity-50 transition cursor-pointer shadow-sm"
                 >
-                  Guardar Cuenta
+                  {guardando
+                    ? "Guardando..."
+                    : cuentaEditando
+                    ? "Guardar Cambios"
+                    : "Guardar Cuenta"}
                 </button>
               </div>
             </form>

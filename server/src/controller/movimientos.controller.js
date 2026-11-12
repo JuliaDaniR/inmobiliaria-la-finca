@@ -70,6 +70,92 @@ export const crearCuenta = async (req, res) => {
 };
 
 // ============================================================================
+// 2.1 ACTUALIZAR CUENTA BANCARIA
+// ============================================================================
+export const actualizarCuenta = async (req, res) => {
+  const { id } = req.params;
+  const { banco, numero_cuenta, cbu_alias, titular, tipo_cuenta, saldo } = req.body;
+
+  if (!banco || !numero_cuenta || !titular) {
+    return res.status(400).json({
+      message: "Banco, número de cuenta y titular son obligatorios.",
+    });
+  }
+
+  try {
+    const [cuenta] = await pool.query(
+      "SELECT * FROM cuentas_bancarias WHERE id = ?",
+      [id]
+    );
+
+    if (cuenta.length === 0) {
+      return res.status(404).json({ message: "Cuenta bancaria no encontrada." });
+    }
+
+    await pool.query(
+      `UPDATE cuentas_bancarias
+       SET banco = ?, numero_cuenta = ?, cbu_alias = ?, titular = ?, tipo_cuenta = ?, saldo = ?
+       WHERE id = ?`,
+      [
+        banco.trim(),
+        numero_cuenta.trim(),
+        cbu_alias ? cbu_alias.trim() : null,
+        titular.trim(),
+        tipo_cuenta || "Cuenta Corriente",
+        parseFloat(saldo) || 0.0,
+        id,
+      ]
+    );
+
+    return res.status(200).json({
+      message: "Cuenta bancaria actualizada con éxito.",
+    });
+  } catch (error) {
+    console.error("Error al actualizar cuenta bancaria:", error);
+    return res.status(500).json({ message: "Error interno al actualizar la cuenta bancaria." });
+  }
+};
+
+// ============================================================================
+// 2.2 ELIMINAR CUENTA BANCARIA
+// ============================================================================
+export const eliminarCuenta = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [cuenta] = await pool.query(
+      "SELECT * FROM cuentas_bancarias WHERE id = ?",
+      [id]
+    );
+
+    if (cuenta.length === 0) {
+      return res.status(404).json({ message: "Cuenta bancaria no encontrada." });
+    }
+
+    // Verificar si tiene movimientos registrados
+    const [movs] = await pool.query(
+      "SELECT COUNT(*) AS total FROM movimientos_bancarios WHERE id_cuenta = ?",
+      [id]
+    );
+
+    if (movs[0].total > 0) {
+      return res.status(400).json({
+        message: `No se puede eliminar la cuenta bancaria porque tiene ${movs[0].total} movimiento(s) registrado(s). Primero debes eliminar dichos movimientos.`,
+      });
+    }
+
+    await pool.query("DELETE FROM cuentas_bancarias WHERE id = ?", [id]);
+
+    return res.status(200).json({
+      message: "Cuenta bancaria eliminada con éxito.",
+    });
+  } catch (error) {
+    console.error("Error al eliminar cuenta bancaria:", error);
+    return res.status(500).json({ message: "Error interno al eliminar la cuenta bancaria." });
+  }
+};
+
+// ============================================================================
 // 3. OBTENER LISTADO DE MOVIMIENTOS BANCARIOS (con filtros opcionales)
 // ============================================================================
 export const obtenerMovimientos = async (req, res) => {

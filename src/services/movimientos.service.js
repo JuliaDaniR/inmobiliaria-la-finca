@@ -33,6 +33,37 @@ export const crearCuentaBancaria = async (cuentaData) => {
   }
 };
 
+// 2.1 Actualizar cuenta bancaria existente
+export const actualizarCuentaBancaria = async (id, cuentaData) => {
+  try {
+    const response = await clienteApi.put(
+      `/movimientos/cuentas/${id}`,
+      cuentaData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error al actualizar cuenta bancaria:", error);
+    throw new Error(
+      error.response?.data?.message || "Error al actualizar la cuenta bancaria",
+      { cause: error }
+    );
+  }
+};
+
+// 2.2 Eliminar cuenta bancaria
+export const eliminarCuentaBancaria = async (id) => {
+  try {
+    const response = await clienteApi.delete(`/movimientos/cuentas/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error al eliminar cuenta bancaria:", error);
+    throw new Error(
+      error.response?.data?.message || "Error al eliminar la cuenta bancaria",
+      { cause: error }
+    );
+  }
+};
+
 // 3. Obtener movimientos bancarios (admite filtros como { tipo: 'INGRESO', id_cuenta: 1, fecha_desde, fecha_hasta })
 export const getMovimientos = async (filtros = {}) => {
   try {
